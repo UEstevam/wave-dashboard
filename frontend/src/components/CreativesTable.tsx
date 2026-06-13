@@ -29,14 +29,17 @@ export default function CreativesTable() {
   const [uploadModal, setUploadModal] = useState<Creative | null>(null);
   const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null);
 
-  const { data: creatives = [], isLoading } = useQuery({
+  const { data: creativesRaw } = useQuery({
     queryKey: ['creatives', filters],
     queryFn: () => creativesApi.list(filters),
   });
+  const creatives: Creative[] = Array.isArray(creativesRaw) ? creativesRaw : [];
+  const isLoading = creativesRaw === undefined;
 
   const { data: options } = useQuery({ queryKey: ['options'], queryFn: optionsApi.list });
 
-  const { data: allColumns = [] } = useQuery({ queryKey: ['columns'], queryFn: columnsApi.list });
+  const { data: columnsRaw } = useQuery({ queryKey: ['columns'], queryFn: columnsApi.list });
+  const allColumns: Column[] = Array.isArray(columnsRaw) ? columnsRaw : [];
   const columns = allColumns.filter(c => c.visible);
 
   const invalidate = () => {
