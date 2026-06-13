@@ -236,8 +236,14 @@ async function _doUpload(jobId, { creativeId, title, description, privacyStatus,
   if (idx !== -1) {
     data.creatives[idx].youtube_url = youtubeUrl;
     data.creatives[idx].updated_at = new Date().toISOString();
-    db.save();
   }
+
+  const accountEntry = data.youtube_config.accounts.find(a => a.id === accountId);
+  if (accountEntry) {
+    accountEntry.upload_count = (accountEntry.upload_count || 0) + 1;
+  }
+
+  db.save();
 
   jobs[jobId].status = 'done';
   jobs[jobId].progress = 100;

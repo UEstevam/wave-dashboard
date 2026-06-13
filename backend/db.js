@@ -83,11 +83,15 @@ function migrate(data) {
     const oldToken = data.youtube_config.refresh_token || '';
     const oldChannels = data.youtube_config.channels || [];
     data.youtube_config.accounts = oldToken
-      ? [{ id: 'account_migrated', email: '', refresh_token: oldToken, channels: oldChannels }]
+      ? [{ id: 'account_migrated', email: '', refresh_token: oldToken, channels: oldChannels, upload_count: 0 }]
       : [];
     delete data.youtube_config.refresh_token;
     delete data.youtube_config.channels;
     delete data.youtube_config.selected_channel_id;
+  }
+
+  for (const a of data.youtube_config.accounts) {
+    if (typeof a.upload_count !== 'number') a.upload_count = 0;
   }
 
   for (const c of data.creatives) {

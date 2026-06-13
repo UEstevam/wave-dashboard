@@ -282,6 +282,7 @@ app.get('/api/youtube/config', (req, res) => {
   const accounts = cfg.accounts.map(a => ({
     id: a.id,
     email: a.email || a.id,
+    upload_count: a.upload_count || 0,
     channels: allChannels.filter(ch => ch.accountId === a.id),
   }));
   res.json({

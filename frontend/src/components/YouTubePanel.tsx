@@ -14,6 +14,7 @@ interface YtChannel {
 
 interface YtAccount {
   id: string; email: string;
+  upload_count: number;
   channels: YtChannel[];
 }
 
@@ -185,6 +186,9 @@ export default function YouTubePanel({ onClose }: Props) {
                     <div className="flex items-center gap-2 min-w-0">
                       <CheckCircle2 size={12} className="text-emerald-400 shrink-0" />
                       <p className="text-[12px] text-white font-medium truncate">{account.email}</p>
+                      <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/20">
+                        {account.upload_count} upload{account.upload_count !== 1 ? 's' : ''}
+                      </span>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <button
