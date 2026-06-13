@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { youtubeApi } from '../api/client';
 import type { Creative } from '../types';
-import { X, Upload, ExternalLink, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { X, Upload, ExternalLink, CheckCircle2, AlertCircle, Loader2, Copy, Check } from 'lucide-react';
 
 interface Props {
   creative: Creative;
@@ -34,6 +34,13 @@ export default function UploadModal({ creative, onClose }: Props) {
   const [channelId, setChannelId] = useState('');
   const [categoryId, setCategoryId] = useState('22');
   const [jobId, setJobId] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const copyUrl = (url: string) => {
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   useEffect(() => {
     if (config && allChannels.length > 0 && !channelId) {
@@ -211,6 +218,21 @@ export default function UploadModal({ creative, onClose }: Props) {
                 <CheckCircle2 size={16} className="text-red-400" />
                 <p className="text-[13px] font-semibold text-white">Upload concluído!</p>
               </div>
+
+              {/* Copyable URL */}
+              <div className="flex items-center gap-2 bg-black/30 rounded-lg px-3 py-2">
+                <span className="flex-1 text-[11px] text-slate-300 font-mono truncate select-all">
+                  {job.youtube_url}
+                </span>
+                <button
+                  onClick={() => copyUrl(job.youtube_url!)}
+                  title="Copiar link"
+                  className="shrink-0 text-slate-400 hover:text-white transition"
+                >
+                  {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+                </button>
+              </div>
+
               <a href={job.youtube_url} target="_blank" rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 w-full py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-[12px] font-medium transition">
                 <ExternalLink size={13} /> Abrir no YouTube
