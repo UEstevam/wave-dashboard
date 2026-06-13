@@ -70,7 +70,13 @@ const DEFAULT_DB = {
 // ── Migration ────────────────────────────────────────────────────────────────
 
 function migrate(data) {
-  data.options = DEFAULT_OPTIONS;
+  if (!data.options || typeof data.options !== 'object') {
+    data.options = DEFAULT_OPTIONS;
+  } else {
+    for (const [cat, defaults] of Object.entries(DEFAULT_OPTIONS)) {
+      if (!Array.isArray(data.options[cat])) data.options[cat] = defaults;
+    }
+  }
 
   if (!Array.isArray(data.columns_config)) data.columns_config = DEFAULT_COLUMNS;
 

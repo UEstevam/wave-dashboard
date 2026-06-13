@@ -12,7 +12,8 @@ import ColumnManager from './ColumnManager';
 import DrivePanel from './DrivePanel';
 import YouTubePanel from './YouTubePanel';
 import UploadModal from './UploadModal';
-import { Plus, Trash2, Film, ChevronUp, ChevronDown, ExternalLink, Link2, Settings2 } from 'lucide-react';
+import OptionsManager from './OptionsManager';
+import { Plus, Trash2, Film, ChevronUp, ChevronDown, ExternalLink, Link2, Settings2, Tags } from 'lucide-react';
 import YtIcon from './YtIcon';
 
 const EMPTY_FILTERS: Filters = { search: '', status: '', gestor: '', oferta: '', tipo: '' };
@@ -25,6 +26,7 @@ export default function CreativesTable() {
   const [showColManager, setShowColManager] = useState(false);
   const [showDrivePanel, setShowDrivePanel] = useState(false);
   const [showYouTubePanel, setShowYouTubePanel] = useState(false);
+  const [showOptionsManager, setShowOptionsManager] = useState(false);
   const [driveModal, setDriveModal] = useState<{ id: number; url: string } | null>(null);
   const [uploadModal, setUploadModal] = useState<Creative | null>(null);
   const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null);
@@ -231,6 +233,13 @@ export default function CreativesTable() {
           >
             <Settings2 size={13} /> Colunas
           </button>
+          <button
+            onClick={() => setShowOptionsManager(true)}
+            title="Gerenciar opções de campos"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] border border-[#2a2d3e] text-slate-400 hover:text-white hover:bg-[#1e2130] transition"
+          >
+            <Tags size={13} /> Opções
+          </button>
           {selected.size > 0 && (
             <button
               onClick={() => deleteMut.mutate([...selected])}
@@ -340,6 +349,7 @@ export default function CreativesTable() {
       {showDrivePanel && <DrivePanel onClose={() => setShowDrivePanel(false)} />}
       {showYouTubePanel && <YouTubePanel onClose={() => setShowYouTubePanel(false)} />}
       {uploadModal && <UploadModal creative={uploadModal} onClose={() => setUploadModal(null)} />}
+      {showOptionsManager && <OptionsManager onClose={() => setShowOptionsManager(false)} />}
     </div>
   );
 }
