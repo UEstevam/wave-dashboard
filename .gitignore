@@ -1,0 +1,6 @@
+node_modules/
+.env
+*.env.local
+wave_db.json
+dist/
+.DS_Store

@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: wave-dashboard-api
+    env: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: DRIVE_REDIRECT_URI
+        sync: false
+      - key: YOUTUBE_REDIRECT_URI
+        sync: false
