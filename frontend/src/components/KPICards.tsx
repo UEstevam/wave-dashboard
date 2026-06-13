@@ -25,7 +25,7 @@ export default function KPICards() {
             </div>
           </div>
           <span className="text-xl font-bold text-white">
-            {stats ? fmt(stats[key] as number) : '—'}
+            {stats != null && stats[key] != null ? fmt(stats[key] as number) : '—'}
           </span>
         </div>
       ))}
