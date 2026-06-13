@@ -103,6 +103,7 @@ function migrate(data) {
   for (const c of data.creatives) {
     if (!('link_drive' in c)) c.link_drive = '';
     if (!('youtube_url' in c)) c.youtube_url = '';
+    if (!('pasta_origem' in c)) c.pasta_origem = '';
     if (!('coluna1' in c)) c.coluna1 = null;
     if (!('coluna2' in c)) c.coluna2 = null;
     for (const col of data.columns_config) {

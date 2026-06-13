@@ -155,7 +155,7 @@ export default function DrivePanel({ onClose }: Props) {
                 { n: '2', text: 'Crie um novo projeto (ex: "Wave Dashboard")' },
                 { n: '3', text: 'Vá em APIs & Services → Library → pesquise "Google Drive API" → Ativar' },
                 { n: '4', text: 'Vá em APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client ID' },
-                { n: '5', text: 'Tipo: Web Application. Em "Authorized redirect URIs" adicione:', code: 'http://localhost:3001/api/drive/callback' },
+                { n: '5', text: 'Tipo: Web Application. Em "Authorized redirect URIs" adicione:', code: config?.callback_url || 'http://localhost:3001/api/drive/callback' },
                 { n: '6', text: 'Copie o Client ID e Client Secret e cole abaixo' },
               ].map(s => (
                 <div key={s.n} className="flex gap-2">

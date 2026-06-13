@@ -14,6 +14,7 @@ export interface Creative {
   coluna2: number | null;
   link_drive: string;
   youtube_url: string;
+  pasta_origem: string;
   created_at: string;
   updated_at: string;
   [key: string]: unknown;

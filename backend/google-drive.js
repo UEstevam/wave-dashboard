@@ -42,9 +42,9 @@ async function exchangeCode(code) {
 
 // ── Drive file fetching ─────────────────────────────────────────────────────
 
-async function listFilesInFolder(folderId, auth) {
+async function listItemsInFolder(folderId, auth) {
   const drive = google.drive({ version: 'v3', auth });
-  const files = [];
+  const items = [];
   let pageToken = null;
 
   do {
@@ -55,11 +55,35 @@ async function listFilesInFolder(folderId, auth) {
       pageToken: pageToken || undefined,
       orderBy: 'createdTime desc',
     });
-    files.push(...(res.data.files || []));
+    items.push(...(res.data.files || []));
     pageToken = res.data.nextPageToken;
   } while (pageToken);
 
-  return files;
+  return items;
+}
+
+// Collect all media files recursively up to 2 levels deep.
+// Returns array of { file, pasta_origem } where pasta_origem is the subfolder name ('' = root).
+async function collectMediaFiles(rootFolderId, auth) {
+  const items = await listItemsInFolder(rootFolderId, auth);
+  const result = [];
+
+  for (const item of items) {
+    if (item.mimeType === 'application/vnd.google-apps.folder') {
+      // It's a subfolder — list its contents
+      const subItems = await listItemsInFolder(item.id, auth);
+      for (const sub of subItems) {
+        if (MEDIA_EXTENSIONS.test(sub.name)) {
+          result.push({ file: sub, pasta_origem: item.name });
+        }
+      }
+    } else if (MEDIA_EXTENSIONS.test(item.name)) {
+      // Direct file in root folder
+      result.push({ file: item, pasta_origem: '' });
+    }
+  }
+
+  return result;
 }
 
 // ── Sync logic ──────────────────────────────────────────────────────────────
@@ -81,9 +105,9 @@ async function syncNow() {
   const auth = makeClient(cfg);
   if (!auth) return { skipped_reason: 'Credenciais inválidas.' };
 
-  let files;
+  let mediaFiles;
   try {
-    files = await listFilesInFolder(cfg.folder_id, auth);
+    mediaFiles = await collectMediaFiles(cfg.folder_id, auth);
   } catch (err) {
     console.error('[Drive] List error:', err.message);
     return { error: `Erro ao listar pasta: ${err.message}` };
@@ -92,30 +116,20 @@ async function syncNow() {
   const imported = [];
   const skipped = [];
 
-  for (const file of files) {
-    // Skip if already imported (by Drive file ID)
+  for (const { file, pasta_origem } of mediaFiles) {
     if (cfg.imported_ids.includes(file.id)) { skipped.push(file.name); continue; }
 
-    // Only import recognised media files
-    if (!MEDIA_EXTENSIONS.test(file.name)) { skipped.push(file.name); continue; }
-
-    // Check if a creative with the same name already exists
     const exists = data.creatives.find(c => c.criativo === file.name);
     if (exists) {
-      // Just attach the Drive link if missing
-      if (!exists.link_drive) {
-        exists.link_drive = file.webViewLink;
-      }
+      if (!exists.link_drive) exists.link_drive = file.webViewLink;
+      if (!exists.pasta_origem && pasta_origem) exists.pasta_origem = pasta_origem;
       cfg.imported_ids.push(file.id);
       skipped.push(file.name);
       continue;
     }
 
-    // Determine next ordem
     const maxOrdem = data.creatives.reduce((m, c) => Math.max(m, parseInt(c.ordem) || 0), 0);
     const nextOrdem = String(maxOrdem + 1).padStart(3, '0');
-
-    // Format date from Drive's createdTime (DD/MM/YYYY)
     const createdDate = file.createdTime
       ? new Date(file.createdTime).toLocaleDateString('pt-BR')
       : new Date().toLocaleDateString('pt-BR');
@@ -135,20 +149,22 @@ async function syncNow() {
       coluna1: null,
       coluna2: null,
       link_drive: file.webViewLink || '',
+      pasta_origem,
+      youtube_url: '',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
 
     data.creatives.push(newCreative);
     cfg.imported_ids.push(file.id);
-    imported.push(file.name);
+    imported.push(pasta_origem ? `[${pasta_origem}] ${file.name}` : file.name);
   }
 
   cfg.last_synced = new Date().toISOString();
   db.save();
 
   console.log(`[Drive] Sync done — ${imported.length} imported, ${skipped.length} skipped`);
-  return { imported, skipped, total: files.length };
+  return { imported, skipped, total: mediaFiles.length };
 }
 
 // ── Polling ─────────────────────────────────────────────────────────────────

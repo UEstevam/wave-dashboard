@@ -99,7 +99,8 @@ export default function CreativesTable() {
 
     if (col.key === 'criativo') {
       return (
-        <div className="flex items-center gap-1.5 min-w-0">
+        <div className="flex flex-col gap-0.5 min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0">
           <Film size={11} className="text-slate-600 shrink-0" />
           <EditableCell value={creative.criativo} onSave={v => update(creative.id, 'criativo', v)} className="text-slate-200 truncate" />
           <div className="flex items-center gap-0.5 shrink-0">
@@ -137,6 +138,12 @@ export default function CreativesTable() {
               </a>
             )}
           </div>
+          </div>
+          {creative.pasta_origem && (
+            <span className="text-[9px] text-indigo-400/70 bg-indigo-500/10 border border-indigo-500/20 rounded px-1.5 py-0.5 truncate max-w-full self-start">
+              📁 {creative.pasta_origem}
+            </span>
+          )}
         </div>
       );
     }

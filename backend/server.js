@@ -205,6 +205,7 @@ app.get('/api/drive/config', (req, res) => {
     is_authenticated: !!refresh_token,
     has_credentials: !!(client_id && client_secret),
     imported_count: (imported_ids || []).length,
+    callback_url: process.env.DRIVE_REDIRECT_URI || 'http://localhost:3001/api/drive/callback',
   });
 });
 
