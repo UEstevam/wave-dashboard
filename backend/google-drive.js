@@ -117,7 +117,12 @@ async function syncNow() {
   const skipped = [];
 
   for (const { file, pasta_origem } of mediaFiles) {
-    if (cfg.imported_ids.includes(file.id)) { skipped.push(file.name); continue; }
+    if (cfg.imported_ids.includes(file.id)) {
+      const stillExists = data.creatives.find(c => c.criativo === file.name);
+      if (stillExists) { skipped.push(file.name); continue; }
+      // Creative was deleted — remove stale ID so it can be re-imported
+      cfg.imported_ids = cfg.imported_ids.filter(id => id !== file.id);
+    }
 
     const exists = data.creatives.find(c => c.criativo === file.name);
     if (exists) {
