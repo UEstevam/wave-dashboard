@@ -55,6 +55,14 @@ export default function DrivePanel({ onClose }: Props) {
     onError: (e: Error) => setSyncResult({ error: e.message }),
   });
 
+  const clearHistoryMut = useMutation({
+    mutationFn: driveApi.clearHistory,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['drive-config'] });
+      setSyncResult(null);
+    },
+  });
+
   const openAuthUrl = async () => {
     const patch: Record<string, unknown> = {};
     if (form.client_id) patch.client_id = form.client_id;
@@ -263,15 +271,32 @@ export default function DrivePanel({ onClose }: Props) {
           {/* Sync now */}
           {isConnected && (
             <div className="border-t border-[#2a2d3e] pt-4 space-y-3">
-              <button
-                onClick={() => { setSyncResult(null); syncMut.mutate(); }}
-                disabled={syncMut.isPending || !hasFolderSet}
-                title={!hasFolderSet ? 'Configure o ID da pasta primeiro' : undefined}
-                className="w-full py-2 rounded-lg text-[12px] font-medium border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <RefreshCw size={13} className={syncMut.isPending ? 'animate-spin' : ''} />
-                {syncMut.isPending ? 'Sincronizando...' : 'Sincronizar agora'}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setSyncResult(null); syncMut.mutate(); }}
+                  disabled={syncMut.isPending || !hasFolderSet}
+                  title={!hasFolderSet ? 'Configure o ID da pasta primeiro' : undefined}
+                  className="flex-1 py-2 rounded-lg text-[12px] font-medium border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <RefreshCw size={13} className={syncMut.isPending ? 'animate-spin' : ''} />
+                  {syncMut.isPending ? 'Sincronizando...' : 'Sincronizar agora'}
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirm('Limpar o histórico de importações? Todos os arquivos do Drive serão tratados como novos na próxima sync.')) {
+                      clearHistoryMut.mutate();
+                    }
+                  }}
+                  disabled={clearHistoryMut.isPending}
+                  title="Limpar histórico — permite reimportar arquivos já existentes"
+                  className="px-3 py-2 rounded-lg text-[12px] border border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition disabled:opacity-40"
+                >
+                  <RefreshCw size={13} className={clearHistoryMut.isPending ? 'animate-spin' : ''} />
+                </button>
+              </div>
+              {clearHistoryMut.isSuccess && (
+                <p className="text-[11px] text-amber-300 text-center">Histórico limpo. Sincronize agora para reimportar.</p>
+              )}
 
               {/* Sync result */}
               {syncResult && (

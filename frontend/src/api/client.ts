@@ -38,6 +38,7 @@ export const driveApi = {
   getAuthUrl: () => api.get<{ url: string }>('/drive/auth-url').then(r => r.data.url),
   disconnect: () => api.post('/drive/disconnect').then(r => r.data),
   sync: () => api.post('/drive/sync').then(r => r.data),
+  clearHistory: () => api.post('/drive/clear-history').then(r => r.data),
 };
 
 export const youtubeApi = {

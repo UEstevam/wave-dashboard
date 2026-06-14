@@ -264,6 +264,14 @@ app.post('/api/drive/disconnect', (req, res) => {
   res.json({ ok: true });
 });
 
+// Clear import history (allows re-importing all Drive files)
+app.post('/api/drive/clear-history', (req, res) => {
+  const data = db.get();
+  data.drive_config.imported_ids = [];
+  db.save();
+  res.json({ ok: true });
+});
+
 // Manual sync
 app.post('/api/drive/sync', async (req, res) => {
   try {
