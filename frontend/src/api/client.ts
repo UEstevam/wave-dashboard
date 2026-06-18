@@ -1,7 +1,26 @@
 import axios from 'axios';
-import type { Creative, Options, Stats, Filters, Column } from '../types';
+import type { Creative, Options, Stats, Filters, Column, AppUser } from '../types';
 
 const api = axios.create({ baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3001/api' });
+
+// Attach JWT on every request
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem('wave_auth_token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+// On 401, clear token and reload to login
+api.interceptors.response.use(
+  r => r,
+  err => {
+    if (err.response?.status === 401) {
+      localStorage.removeItem('wave_auth_token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(err);
+  }
+);
 
 export const creativesApi = {
   list: (filters: Partial<Filters> = {}) =>
@@ -56,4 +75,21 @@ export const columnsApi = {
   update: (cols: Column[]) => api.put<Column[]>('/columns', cols).then(r => r.data),
   add: (label: string, type: string) => api.post<Column>('/columns', { label, type }).then(r => r.data),
   remove: (key: string) => api.delete(`/columns/${key}`),
+};
+
+export const authApi = {
+  me: () => api.get<AppUser>('/auth/me').then(r => r.data),
+  loginUrl: () => `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/auth/google`,
+};
+
+export const usersApi = {
+  list: () => api.get<AppUser[]>('/users').then(r => r.data),
+  listAll: () => api.get<AppUser[]>('/users/all').then(r => r.data),
+  listPending: () => api.get<AppUser[]>('/users/pending').then(r => r.data),
+  approve: (googleId: string, role: string) =>
+    api.put<AppUser>(`/users/${googleId}`, { status: 'approved', role }).then(r => r.data),
+  updateRole: (googleId: string, role: string) =>
+    api.put<AppUser>(`/users/${googleId}`, { role }).then(r => r.data),
+  remove: (googleId: string) =>
+    api.delete(`/users/${googleId}`),
 };

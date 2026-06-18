@@ -1,11 +1,31 @@
 const express = require('express');
 const cors = require('cors');
 const db = require('./db');
+const auth = require('./auth');
 const DEFAULT_COLUMNS = db.DEFAULT_COLUMNS;
 const drive = require('./google-drive');
 const youtube = require('./youtube');
 
+// Start DB initialization immediately (module load)
+let dbReady = false;
+const initPromise = db.init()
+  .then(() => { dbReady = true; })
+  .catch(err => { console.error('[FATAL] DB init:', err.message); });
+
 const app = express();
+
+// ── Core middleware ────────────────────────────────────────────────────────
+
+// Ensure DB is initialized before handling any request (critical for cold starts)
+app.use(async (req, res, next) => {
+  if (!dbReady) {
+    try { await initPromise; } catch {
+      return res.status(503).json({ error: 'Database not ready' });
+    }
+  }
+  next();
+});
+
 app.use(cors({
   origin: process.env.FRONTEND_URL
     ? [process.env.FRONTEND_URL, 'http://localhost:5173']
@@ -14,12 +34,139 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// ── Auth middleware ────────────────────────────────────────────────────────
+
+function requireAuth(req, res, next) {
+  if (!process.env.GOOGLE_CLIENT_ID) return next();
+  const token = (req.headers.authorization || '').replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    req.user = auth.verifyToken(token);
+    next();
+  } catch {
+    res.status(401).json({ error: 'Invalid or expired token' });
+  }
+}
+
+function requireRole(...roles) {
+  return (req, res, next) => {
+    if (!process.env.GOOGLE_CLIENT_ID) return next();
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    next();
+  };
+}
+
+const PUBLIC_PATHS = new Set([
+  '/api/auth/google',
+  '/api/auth/callback',
+  '/api/drive/callback',
+  '/api/youtube/callback',
+]);
+
+app.use((req, res, next) => {
+  if (PUBLIC_PATHS.has(req.path)) return next();
+  return requireAuth(req, res, next);
+});
+
+// ── Auth routes ────────────────────────────────────────────────────────────
+
+app.get('/api/auth/google', (req, res) => {
+  if (!process.env.GOOGLE_CLIENT_ID) {
+    return res.status(501).json({ error: 'Google OAuth not configured' });
+  }
+  res.redirect(auth.getAuthUrl());
+});
+
+app.get('/api/auth/callback', async (req, res) => {
+  const { code } = req.query;
+  const FRONTEND = process.env.FRONTEND_URL || 'http://localhost:5173';
+  if (!code) return res.redirect(`${FRONTEND}/login?error=missing_code`);
+
+  try {
+    const googleUser = await auth.getUserInfoFromCode(code);
+    let user = await db.findUserByGoogleId(googleUser.googleId);
+
+    if (!user) {
+      const isAdmin = googleUser.email === process.env.ADMIN_EMAIL;
+      user = await db.createUser({
+        googleId: googleUser.googleId,
+        email: googleUser.email,
+        name: googleUser.name,
+        picture: googleUser.picture,
+        status: isAdmin ? 'approved' : 'pending',
+        role: isAdmin ? 'adm' : null,
+      });
+    } else {
+      const updates = { picture: googleUser.picture, name: googleUser.name };
+      if (googleUser.email === process.env.ADMIN_EMAIL && user.status !== 'approved') {
+        updates.status = 'approved';
+        updates.role = 'adm';
+      }
+      user = await db.updateUser(googleUser.googleId, updates);
+    }
+
+    if (user.status !== 'approved') {
+      return res.redirect(`${FRONTEND}/login?status=pending`);
+    }
+
+    const token = auth.signToken({ id: user.googleId, role: user.role, email: user.email });
+    res.redirect(`${FRONTEND}/auth/callback?token=${token}`);
+  } catch (err) {
+    console.error('[Auth] Callback error:', err.message);
+    const FRONTEND = process.env.FRONTEND_URL || 'http://localhost:5173';
+    res.redirect(`${FRONTEND}/login?error=${encodeURIComponent(err.message)}`);
+  }
+});
+
+app.get('/api/auth/me', async (req, res) => {
+  const user = await db.findUserByGoogleId(req.user.id);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  const { _id, ...safeUser } = user;
+  res.json(safeUser);
+});
+
+// ── Users management ───────────────────────────────────────────────────────
+
+app.get('/api/users', async (req, res) => {
+  const users = await db.listUsers({ status: 'approved' });
+  res.json(users.map(({ _id, ...u }) => u));
+});
+
+app.get('/api/users/pending', requireRole('adm'), async (req, res) => {
+  const users = await db.listUsers({ status: 'pending' });
+  res.json(users.map(({ _id, ...u }) => u));
+});
+
+app.get('/api/users/all', requireRole('adm'), async (req, res) => {
+  const users = await db.listUsers();
+  res.json(users.map(({ _id, ...u }) => u));
+});
+
+app.put('/api/users/:googleId', requireRole('adm'), async (req, res) => {
+  const { googleId } = req.params;
+  const { status, role } = req.body;
+  const updates = {};
+  if (status) updates.status = status;
+  if (role !== undefined) updates.role = role;
+  const updated = await db.updateUser(googleId, updates);
+  if (!updated) return res.status(404).json({ error: 'User not found' });
+  const { _id, ...safeUser } = updated;
+  res.json(safeUser);
+});
+
+app.delete('/api/users/:googleId', requireRole('adm'), async (req, res) => {
+  await db.deleteUser(req.params.googleId);
+  res.status(204).send();
+});
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function matchesFilter(c, { search, status, gestor, oferta, tipo }) {
   if (search) {
     const s = search.toLowerCase();
-    if (!c.criativo.toLowerCase().includes(s) && !c.ordem.includes(s) && !c.observacoes.toLowerCase().includes(s)) return false;
+    if (!c.criativo.toLowerCase().includes(s) && !c.ordem.includes(s) && !(c.observacoes || '').toLowerCase().includes(s)) return false;
   }
   if (status && c.status !== status) return false;
   if (gestor && c.gestor !== gestor) return false;
@@ -58,6 +205,9 @@ app.post('/api/creatives', (req, res) => {
     oferta: oferta || '',
     status: status || 'EM TESTE',
     gestor: gestor || '',
+    gestor_id: null,
+    editor_id: null,
+    copy_id: null,
     observacoes: observacoes || '',
     num_vendas: num_vendas || 0,
     cpa: cpa || 0,
@@ -156,7 +306,6 @@ app.get('/api/columns', (req, res) => {
   res.json(db.get().columns_config || DEFAULT_COLUMNS);
 });
 
-// Replace entire columns array (used for reorder, rename, visibility toggle)
 app.put('/api/columns', (req, res) => {
   if (!Array.isArray(req.body)) return res.status(400).json({ error: 'Expected array' });
   const data = db.get();
@@ -165,7 +314,6 @@ app.put('/api/columns', (req, res) => {
   res.json(data.columns_config);
 });
 
-// Add a new custom column
 app.post('/api/columns', (req, res) => {
   const { label, type } = req.body;
   if (!label) return res.status(400).json({ error: 'label is required' });
@@ -180,7 +328,6 @@ app.post('/api/columns', (req, res) => {
   res.status(201).json(newCol);
 });
 
-// Delete a custom column
 app.delete('/api/columns/:key', (req, res) => {
   const { key } = req.params;
   const data = db.get();
@@ -196,20 +343,18 @@ app.delete('/api/columns/:key', (req, res) => {
 
 // ── Google Drive integration ───────────────────────────────────────────────
 
-// Get current Drive config (never expose tokens to frontend)
 app.get('/api/drive/config', (req, res) => {
-  const { client_id, client_secret, refresh_token, folder_id, poll_interval_minutes, last_synced, enabled, auto_status, auto_gestor, auto_oferta, auto_tipo, imported_ids } = db.get().drive_config;
+  const { client_id, refresh_token, folder_id, poll_interval_minutes, last_synced, enabled, auto_status, auto_gestor, auto_oferta, auto_tipo, imported_ids } = db.get().drive_config;
   res.json({
     client_id, folder_id, poll_interval_minutes, last_synced, enabled,
     auto_status, auto_gestor, auto_oferta, auto_tipo,
     is_authenticated: !!refresh_token,
-    has_credentials: !!(client_id && client_secret),
+    has_credentials: !!(client_id && db.get().drive_config.client_secret),
     imported_count: (imported_ids || []).length,
     callback_url: process.env.DRIVE_REDIRECT_URI || 'http://localhost:3001/api/drive/callback',
   });
 });
 
-// Save credentials + settings (does NOT overwrite refresh_token)
 app.put('/api/drive/config', (req, res) => {
   const data = db.get();
   const cfg = data.drive_config;
@@ -222,39 +367,28 @@ app.put('/api/drive/config', (req, res) => {
   res.json({ ok: true });
 });
 
-// Generate OAuth URL so user can authenticate
 app.get('/api/drive/auth-url', (req, res) => {
   const { client_id, client_secret } = db.get().drive_config;
   if (!client_id || !client_secret) return res.status(400).json({ error: 'Set client_id and client_secret first' });
   try {
-    const url = drive.getAuthUrl(client_id, client_secret);
-    res.json({ url });
+    res.json({ url: drive.getAuthUrl(client_id, client_secret) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// OAuth callback — exchange code for tokens
 app.get('/api/drive/callback', async (req, res) => {
   const { code } = req.query;
   if (!code) return res.status(400).send('Missing code');
   try {
     await drive.exchangeCode(code);
     drive.startPolling();
-    res.send(`
-      <html><body style="font-family:sans-serif;background:#0f1117;color:#e2e8f0;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
-        <div style="text-align:center">
-          <h2 style="color:#22c55e">✓ Autenticação concluída!</h2>
-          <p>Pode fechar esta aba e voltar ao dashboard.</p>
-        </div>
-      </body></html>
-    `);
+    res.send(`<html><body style="font-family:sans-serif;background:#0a0c14;color:#e2e8f0;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><h2 style="color:#22c55e">✓ Autenticação concluída!</h2><p>Pode fechar esta aba e voltar ao dashboard.</p></div></body></html>`);
   } catch (err) {
     res.status(500).send(`Erro: ${err.message}`);
   }
 });
 
-// Disconnect (remove tokens)
 app.post('/api/drive/disconnect', (req, res) => {
   const data = db.get();
   data.drive_config.refresh_token = '';
@@ -264,7 +398,6 @@ app.post('/api/drive/disconnect', (req, res) => {
   res.json({ ok: true });
 });
 
-// Clear import history (allows re-importing all Drive files)
 app.post('/api/drive/clear-history', (req, res) => {
   const data = db.get();
   data.drive_config.imported_ids = [];
@@ -272,7 +405,6 @@ app.post('/api/drive/clear-history', (req, res) => {
   res.json({ ok: true });
 });
 
-// Manual sync
 app.post('/api/drive/sync', async (req, res) => {
   try {
     const result = await drive.syncNow();
@@ -287,11 +419,8 @@ app.post('/api/drive/sync', async (req, res) => {
 app.get('/api/youtube/config', (req, res) => {
   const cfg = db.get().youtube_config;
   const allChannels = youtube.getAllChannels();
-  // Attach CH-XX labels to accounts for display
   const accounts = cfg.accounts.map(a => ({
-    id: a.id,
-    email: a.email || a.id,
-    upload_count: a.upload_count || 0,
+    id: a.id, email: a.email || a.id, upload_count: a.upload_count || 0,
     channels: allChannels.filter(ch => ch.accountId === a.id),
   }));
   res.json({
@@ -299,8 +428,7 @@ app.get('/api/youtube/config', (req, res) => {
     has_credentials: !!(cfg.client_id && cfg.client_secret),
     default_privacy: cfg.default_privacy,
     default_category_id: cfg.default_category_id,
-    accounts,
-    all_channels: allChannels,
+    accounts, all_channels: allChannels,
   });
 });
 
@@ -315,14 +443,12 @@ app.put('/api/youtube/config', (req, res) => {
   res.json({ ok: true });
 });
 
-// Generate OAuth URL — optionally for re-authenticating an existing account
 app.get('/api/youtube/auth-url', (req, res) => {
   const cfg = db.get().youtube_config;
-  const { client_id, client_secret } = cfg;
-  if (!client_id || !client_secret) return res.status(400).json({ error: 'Defina client_id e client_secret antes' });
+  if (!cfg.client_id || !cfg.client_secret) return res.status(400).json({ error: 'Defina client_id e client_secret antes' });
   const accountId = req.query.accountId || 'new';
   try {
-    res.json({ url: youtube.getAuthUrl(client_id, client_secret, accountId) });
+    res.json({ url: youtube.getAuthUrl(cfg.client_id, cfg.client_secret, accountId) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -333,23 +459,13 @@ app.get('/api/youtube/callback', async (req, res) => {
   if (!code) return res.status(400).send('Missing code');
   try {
     const accountId = await youtube.exchangeCode(code, state);
-    // Fetch channels and email immediately after auth
     try { await youtube.fetchChannelsForAccount(accountId); } catch (_) {}
-    res.send(`
-      <html><body style="font-family:sans-serif;background:#0f1117;color:#e2e8f0;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
-        <div style="text-align:center">
-          <div style="font-size:48px">▶</div>
-          <h2 style="color:#ff4444;margin:8px 0">Conta Google vinculada!</h2>
-          <p style="color:#94a3b8">Pode fechar esta aba e voltar ao dashboard.</p>
-        </div>
-      </body></html>
-    `);
+    res.send(`<html><body style="font-family:sans-serif;background:#0a0c14;color:#e2e8f0;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><div style="font-size:48px">▶</div><h2 style="color:#ff4444;margin:8px 0">Conta Google vinculada!</h2><p style="color:#94a3b8">Pode fechar esta aba e voltar ao dashboard.</p></div></body></html>`);
   } catch (err) {
-    res.status(500).send(`<html><body style="background:#0f1117;color:#f87171;font-family:sans-serif;padding:40px">Erro: ${err.message}</body></html>`);
+    res.status(500).send(`<html><body style="background:#0a0c14;color:#f87171;font-family:sans-serif;padding:40px">Erro: ${err.message}</body></html>`);
   }
 });
 
-// Refresh channels for a specific account
 app.post('/api/youtube/accounts/:accountId/refresh', async (req, res) => {
   try {
     const account = await youtube.fetchChannelsForAccount(req.params.accountId);
@@ -359,7 +475,6 @@ app.post('/api/youtube/accounts/:accountId/refresh', async (req, res) => {
   }
 });
 
-// Remove an account
 app.delete('/api/youtube/accounts/:accountId', (req, res) => {
   youtube.removeAccount(req.params.accountId);
   res.json({ ok: true });
@@ -368,7 +483,7 @@ app.delete('/api/youtube/accounts/:accountId', (req, res) => {
 app.post('/api/youtube/upload', async (req, res) => {
   const { creativeId, title, description, privacyStatus, channelId, categoryId } = req.body;
   if (!creativeId) return res.status(400).json({ error: 'creativeId obrigatório' });
-  if (!channelId) return res.status(400).json({ error: 'channelId obrigatório' });
+  if (!channelId)  return res.status(400).json({ error: 'channelId obrigatório' });
   try {
     const jobId = await youtube.startUpload({ creativeId, title, description, privacyStatus, channelId, categoryId });
     res.json({ jobId });
@@ -383,18 +498,20 @@ app.get('/api/youtube/upload-status/:jobId', (req, res) => {
   res.json(job);
 });
 
-// ── Startup ────────────────────────────────────────────────────────────────
+// ── Local dev startup ──────────────────────────────────────────────────────
 
-const PORT = process.env.PORT || 3001;
-
-db.init()
-  .then(() => {
+if (require.main === module) {
+  const PORT = process.env.PORT || 3001;
+  initPromise.then(() => {
     app.listen(PORT, () => {
       console.log(`Wave Dashboard API → http://localhost:${PORT}`);
       drive.startPolling();
     });
-  })
-  .catch(err => {
-    console.error('[FATAL] Failed to initialize database:', err.message);
+  }).catch(err => {
+    console.error('[FATAL]', err.message);
     process.exit(1);
   });
+} else {
+  // Vercel serverless export
+  module.exports = app;
+}

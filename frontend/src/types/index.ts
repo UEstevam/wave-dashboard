@@ -7,6 +7,9 @@ export interface Creative {
   oferta: string;
   status: string;
   gestor: string;
+  gestor_id: string | null;
+  editor_id: string | null;
+  copy_id: string | null;
   observacoes: string;
   num_vendas: number;
   cpa: number;
@@ -23,7 +26,7 @@ export interface Creative {
 export interface Column {
   key: string;
   label: string;
-  type: 'text' | 'number' | 'currency' | 'select' | 'date';
+  type: 'text' | 'number' | 'currency' | 'select' | 'date' | 'user';
   visible: boolean;
   fixed: boolean;
   width: number;
@@ -38,7 +41,6 @@ export interface OptionItem {
 export interface Options {
   status: OptionItem[];
   tipo: OptionItem[];
-  gestor: OptionItem[];
   oferta: OptionItem[];
   [key: string]: OptionItem[];
 }
@@ -58,4 +60,17 @@ export interface Filters {
   gestor: string;
   oferta: string;
   tipo: string;
+}
+
+export type UserRole = 'gestor' | 'editor' | 'copy' | 'adm';
+export type UserStatus = 'pending' | 'approved';
+
+export interface AppUser {
+  googleId: string;
+  email: string;
+  name: string;
+  picture: string;
+  role: UserRole | null;
+  status: UserStatus;
+  createdAt?: string;
 }

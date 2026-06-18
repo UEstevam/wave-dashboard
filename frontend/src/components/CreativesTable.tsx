@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { creativesApi, optionsApi, columnsApi } from '../api/client';
+import { creativesApi, optionsApi, columnsApi, usersApi } from '../api/client';
 import type { Creative, Filters, Column } from '../types';
 import EditableCell from './EditableCell';
 import SelectCell from './SelectCell';
@@ -13,13 +13,20 @@ import DrivePanel from './DrivePanel';
 import YouTubePanel from './YouTubePanel';
 import UploadModal from './UploadModal';
 import OptionsManager from './OptionsManager';
-import { Plus, Trash2, Film, ChevronUp, ChevronDown, ExternalLink, Link2, Settings2, Tags } from 'lucide-react';
+import UserAvatar from './UserAvatar';
+import UserPickerDialog from './UserPickerDialog';
+import AdminPanel from './AdminPanel';
+import { useAuth } from '../contexts/AuthContext';
+import { Plus, Trash2, Film, ChevronUp, ChevronDown, ExternalLink, Link2, Settings2, Tags, LogOut, Shield } from 'lucide-react';
 import YtIcon from './YtIcon';
 
 const EMPTY_FILTERS: Filters = { search: '', status: '', gestor: '', oferta: '', tipo: '' };
 
+type UserPickerState = { creativeId: number; columnKey: 'editor_id' | 'copy_id' | 'gestor_id'; currentUserId: string | null } | null;
+
 export default function CreativesTable() {
   const qc = useQueryClient();
+  const { user: me, logout } = useAuth();
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [showAdd, setShowAdd] = useState(false);
@@ -27,8 +34,10 @@ export default function CreativesTable() {
   const [showDrivePanel, setShowDrivePanel] = useState(false);
   const [showYouTubePanel, setShowYouTubePanel] = useState(false);
   const [showOptionsManager, setShowOptionsManager] = useState(false);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [driveModal, setDriveModal] = useState<{ id: number; url: string } | null>(null);
   const [uploadModal, setUploadModal] = useState<Creative | null>(null);
+  const [userPicker, setUserPicker] = useState<UserPickerState>(null);
   const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null);
 
   const { data: creativesRaw } = useQuery({
@@ -39,10 +48,13 @@ export default function CreativesTable() {
   const isLoading = creativesRaw === undefined;
 
   const { data: options } = useQuery({ queryKey: ['options'], queryFn: optionsApi.list });
+  const { data: usersData = [] } = useQuery({ queryKey: ['users'], queryFn: usersApi.list });
 
   const { data: columnsRaw } = useQuery({ queryKey: ['columns'], queryFn: columnsApi.list });
   const allColumns: Column[] = Array.isArray(columnsRaw) ? columnsRaw : [];
   const columns = allColumns.filter(c => c.visible);
+
+  const userMap = new Map(usersData.map(u => [u.googleId, u]));
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['creatives'] });
@@ -96,6 +108,29 @@ export default function CreativesTable() {
     const raw = creative[col.key];
     const strVal = raw != null ? String(raw) : '';
     const numVal = raw != null ? Number(raw) : 0;
+
+    // User-photo columns (editor_id, copy_id, gestor_id)
+    if (col.type === 'user') {
+      const userId = raw as string | null;
+      const assignedUser = userId ? userMap.get(userId) : null;
+      const colKey = col.key as 'editor_id' | 'copy_id' | 'gestor_id';
+
+      return (
+        <button
+          onClick={() => setUserPicker({ creativeId: creative.id, columnKey: colKey, currentUserId: userId })}
+          className="flex items-center justify-center w-full h-full group"
+          title={assignedUser ? assignedUser.name : `Atribuir ${col.label.toLowerCase()}`}
+        >
+          {assignedUser ? (
+            <UserAvatar picture={assignedUser.picture} name={assignedUser.name} size={26} />
+          ) : (
+            <div className="w-[26px] h-[26px] rounded-full border border-dashed border-slate-700 flex items-center justify-center group-hover:border-slate-500 transition">
+              <span className="text-[9px] text-slate-600 group-hover:text-slate-400">+</span>
+            </div>
+          )}
+        </button>
+      );
+    }
 
     if (col.key === 'criativo') {
       return (
@@ -211,6 +246,16 @@ export default function CreativesTable() {
           <span className="text-[11px] text-slate-500 border border-[#2a2d3e] rounded px-1.5 py-0.5">Criativos</span>
         </div>
         <div className="flex items-center gap-2">
+          {/* Admin panel button — only for adm role */}
+          {me?.role === 'adm' && (
+            <button
+              onClick={() => setShowAdminPanel(true)}
+              title="Gerenciar usuários"
+              className="relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] border border-[#2a2d3e] text-slate-400 hover:text-white hover:bg-[#1e2130] transition"
+            >
+              <Shield size={13} /> Usuários
+            </button>
+          )}
           <button
             onClick={() => setShowDrivePanel(v => !v)}
             title="Google Drive Sync"
@@ -261,6 +306,20 @@ export default function CreativesTable() {
           >
             <Plus size={13} /> Novo
           </button>
+
+          {/* User avatar + logout */}
+          {me && (
+            <div className="flex items-center gap-1.5 pl-1 border-l border-[#2a2d3e] ml-1">
+              <UserAvatar picture={me.picture} name={me.name} size={26} className="cursor-default" />
+              <button
+                onClick={logout}
+                title="Sair"
+                className="p-1.5 rounded text-slate-600 hover:text-slate-300 hover:bg-white/5 transition"
+              >
+                <LogOut size={13} />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -357,6 +416,15 @@ export default function CreativesTable() {
       {showYouTubePanel && <YouTubePanel onClose={() => setShowYouTubePanel(false)} />}
       {uploadModal && <UploadModal creative={uploadModal} onClose={() => setUploadModal(null)} />}
       {showOptionsManager && <OptionsManager onClose={() => setShowOptionsManager(false)} />}
+      {showAdminPanel && <AdminPanel onClose={() => setShowAdminPanel(false)} />}
+      {userPicker && (
+        <UserPickerDialog
+          currentUserId={userPicker.currentUserId}
+          columnKey={userPicker.columnKey}
+          onSave={googleId => updateMut.mutate({ id: userPicker.creativeId, data: { [userPicker.columnKey]: googleId } })}
+          onClose={() => setUserPicker(null)}
+        />
+      )}
     </div>
   );
 }
