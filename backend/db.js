@@ -206,10 +206,12 @@ function get() {
 
 function save() {
   if (_col) {
-    _col.replaceOne({ _id: DOC_ID }, { _id: DOC_ID, ..._db }, { upsert: true })
+    // Returns a promise — callers in serverless MUST await this
+    return _col.replaceOne({ _id: DOC_ID }, { _id: DOC_ID, ..._db }, { upsert: true })
       .catch(err => console.error('[DB] Save error:', err.message));
   } else {
     fs.writeFileSync(DB_FILE, JSON.stringify(_db, null, 2), 'utf8');
+    return Promise.resolve();
   }
 }
 

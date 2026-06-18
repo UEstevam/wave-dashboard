@@ -148,6 +148,9 @@ async function syncNow() {
       oferta: cfg.auto_oferta || '',
       status: cfg.auto_status || 'EM TESTE',
       gestor: cfg.auto_gestor || '',
+      gestor_id: null,
+      editor_id: null,
+      copy_id: null,
       observacoes: '',
       num_vendas: 0,
       cpa: 0,
@@ -166,7 +169,7 @@ async function syncNow() {
   }
 
   cfg.last_synced = new Date().toISOString();
-  db.save();
+  await db.save(); // must await in serverless — otherwise Vercel terminates before MongoDB write
 
   console.log(`[Drive] Sync done — ${imported.length} imported, ${skipped.length} skipped`);
   return { imported, skipped, total: mediaFiles.length };

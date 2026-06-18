@@ -79,7 +79,7 @@ async function exchangeCode(code, state) {
     cfg.accounts.push(account);
   }
 
-  db.save();
+  await db.save();
   return accountId;
 }
 
@@ -110,14 +110,14 @@ async function fetchChannelsForAccount(accountId) {
     custom_url: ch.snippet.customUrl || '',
   }));
 
-  db.save();
+  await db.save();
   return account;
 }
 
-function removeAccount(accountId) {
+async function removeAccount(accountId) {
   const data = db.get();
   data.youtube_config.accounts = data.youtube_config.accounts.filter(a => a.id !== accountId);
-  db.save();
+  await db.save();
 }
 
 // ── Drive download helper ────────────────────────────────────────────────────
@@ -243,7 +243,7 @@ async function _doUpload(jobId, { creativeId, title, description, privacyStatus,
     accountEntry.upload_count = (accountEntry.upload_count || 0) + 1;
   }
 
-  db.save();
+  await db.save();
 
   jobs[jobId].status = 'done';
   jobs[jobId].progress = 100;

@@ -18,6 +18,7 @@ const app = express();
 // ── Core middleware ────────────────────────────────────────────────────────
 
 app.use(async (req, res, next) => {
+  if (req.path === '/api/health') return next(); // bypass for health check
   if (!dbReady) {
     await initPromise; // wait for resolution (catch already handled)
     if (!dbReady) {
@@ -74,14 +75,19 @@ app.use((req, res, next) => {
 
 // ── Health check ──────────────────────────────────────────────────────────
 
-app.get('/api/health', (req, res) => {
+app.get('/api/health', async (req, res) => {
+  await initPromise; // wait so dbError is populated
+  const uri = process.env.MONGODB_URI || '';
   res.json({
     status: dbReady ? 'ok' : 'error',
     dbReady,
     dbError,
-    mongoConfigured: !!process.env.MONGODB_URI,
+    mongoConfigured: !!uri,
     googleConfigured: !!process.env.GOOGLE_CLIENT_ID,
     db: process.env.MONGODB_DB || 'wavedash',
+    uriLen: uri.length,
+    uriStart: uri.slice(0, 25),
+    uriEnd: uri.slice(-20),
   });
 });
 
@@ -200,7 +206,7 @@ app.get('/api/creatives', (req, res) => {
   res.json(list);
 });
 
-app.post('/api/creatives', (req, res) => {
+app.post('/api/creatives', async (req, res) => {
   const data = db.get();
   const now = new Date().toISOString();
   const { ordem, criativo, tipo, data: dateVal, oferta, status, gestor, observacoes, num_vendas, cpa, coluna1, coluna2, link_drive } = req.body;
@@ -234,11 +240,11 @@ app.post('/api/creatives', (req, res) => {
   };
 
   data.creatives.push(newCreative);
-  db.save();
+  await db.save();
   res.status(201).json(newCreative);
 });
 
-app.put('/api/creatives/:id', (req, res) => {
+app.put('/api/creatives/:id', async (req, res) => {
   const data = db.get();
   const id = parseInt(req.params.id);
   const idx = data.creatives.findIndex(c => c.id === id);
@@ -249,24 +255,24 @@ app.put('/api/creatives/:id', (req, res) => {
     if (!PROTECTED.has(field)) data.creatives[idx][field] = value;
   }
   data.creatives[idx].updated_at = new Date().toISOString();
-  db.save();
+  await db.save();
   res.json(data.creatives[idx]);
 });
 
-app.delete('/api/creatives/:id', (req, res) => {
+app.delete('/api/creatives/:id', async (req, res) => {
   const data = db.get();
   const id = parseInt(req.params.id);
   data.creatives = data.creatives.filter(c => c.id !== id);
-  db.save();
+  await db.save();
   res.status(204).send();
 });
 
-app.post('/api/creatives/bulk-delete', (req, res) => {
+app.post('/api/creatives/bulk-delete', async (req, res) => {
   const data = db.get();
   const ids = new Set((req.body.ids || []).map(Number));
   if (!ids.size) return res.status(400).json({ error: 'No ids provided' });
   data.creatives = data.creatives.filter(c => !ids.has(c.id));
-  db.save();
+  await db.save();
   res.status(204).send();
 });
 
@@ -276,23 +282,23 @@ app.get('/api/options', (req, res) => {
   res.json(db.get().options);
 });
 
-app.post('/api/options', (req, res) => {
+app.post('/api/options', async (req, res) => {
   const data = db.get();
   const { category, value, color } = req.body;
   if (!data.options[category]) data.options[category] = [];
   if (!data.options[category].find(o => o.value === value)) {
     data.options[category].push({ value, color: color || '#6b7280' });
-    db.save();
+    await db.save();
   }
   res.status(201).json({ category, value, color });
 });
 
-app.delete('/api/options/:category/:value', (req, res) => {
+app.delete('/api/options/:category/:value', async (req, res) => {
   const data = db.get();
   const { category, value } = req.params;
   if (data.options[category]) {
     data.options[category] = data.options[category].filter(o => o.value !== decodeURIComponent(value));
-    db.save();
+    await db.save();
   }
   res.status(204).send();
 });
@@ -321,15 +327,15 @@ app.get('/api/columns', (req, res) => {
   res.json(db.get().columns_config || DEFAULT_COLUMNS);
 });
 
-app.put('/api/columns', (req, res) => {
+app.put('/api/columns', async (req, res) => {
   if (!Array.isArray(req.body)) return res.status(400).json({ error: 'Expected array' });
   const data = db.get();
   data.columns_config = req.body;
-  db.save();
+  await db.save();
   res.json(data.columns_config);
 });
 
-app.post('/api/columns', (req, res) => {
+app.post('/api/columns', async (req, res) => {
   const { label, type } = req.body;
   if (!label) return res.status(400).json({ error: 'label is required' });
   const data = db.get();
@@ -339,11 +345,11 @@ app.post('/api/columns', (req, res) => {
   cols.push(newCol);
   data.columns_config = cols;
   for (const c of data.creatives) c[key] = null;
-  db.save();
+  await db.save();
   res.status(201).json(newCol);
 });
 
-app.delete('/api/columns/:key', (req, res) => {
+app.delete('/api/columns/:key', async (req, res) => {
   const { key } = req.params;
   const data = db.get();
   const cols = data.columns_config || DEFAULT_COLUMNS;
@@ -352,7 +358,7 @@ app.delete('/api/columns/:key', (req, res) => {
   if (col.fixed) return res.status(400).json({ error: 'Cannot delete fixed columns' });
   data.columns_config = cols.filter(c => c.key !== key);
   for (const c of data.creatives) delete c[key];
-  db.save();
+  await db.save();
   res.status(204).send();
 });
 
@@ -370,14 +376,14 @@ app.get('/api/drive/config', (req, res) => {
   });
 });
 
-app.put('/api/drive/config', (req, res) => {
+app.put('/api/drive/config', async (req, res) => {
   const data = db.get();
   const cfg = data.drive_config;
   const allowed = ['client_id', 'client_secret', 'folder_id', 'poll_interval_minutes', 'enabled', 'auto_status', 'auto_gestor', 'auto_oferta', 'auto_tipo'];
   for (const key of allowed) {
     if (key in req.body) cfg[key] = req.body[key];
   }
-  db.save();
+  await db.save();
   drive.restartPolling();
   res.json({ ok: true });
 });
@@ -404,19 +410,19 @@ app.get('/api/drive/callback', async (req, res) => {
   }
 });
 
-app.post('/api/drive/disconnect', (req, res) => {
+app.post('/api/drive/disconnect', async (req, res) => {
   const data = db.get();
   data.drive_config.refresh_token = '';
   data.drive_config.enabled = false;
-  db.save();
+  await db.save();
   drive.stopPolling();
   res.json({ ok: true });
 });
 
-app.post('/api/drive/clear-history', (req, res) => {
+app.post('/api/drive/clear-history', async (req, res) => {
   const data = db.get();
   data.drive_config.imported_ids = [];
-  db.save();
+  await db.save();
   res.json({ ok: true });
 });
 
@@ -447,14 +453,14 @@ app.get('/api/youtube/config', (req, res) => {
   });
 });
 
-app.put('/api/youtube/config', (req, res) => {
+app.put('/api/youtube/config', async (req, res) => {
   const data = db.get();
   const cfg = data.youtube_config;
   const allowed = ['client_id', 'client_secret', 'default_privacy', 'default_category_id'];
   for (const key of allowed) {
     if (key in req.body) cfg[key] = req.body[key];
   }
-  db.save();
+  await db.save();
   res.json({ ok: true });
 });
 
