@@ -190,6 +190,35 @@ function initFile() {
   console.log('[DB] JSON file mode (auth disabled)');
 }
 
+// Fast update: $set only the changed fields on a specific creative array element
+async function updateCreative(id, updates) {
+  const idx = _db.creatives.findIndex(c => c.id === id);
+  if (idx === -1) return null;
+
+  const now = new Date().toISOString();
+  const PROTECTED = new Set(['id', 'created_at']);
+  for (const [k, v] of Object.entries(updates)) {
+    if (!PROTECTED.has(k)) _db.creatives[idx][k] = v;
+  }
+  _db.creatives[idx].updated_at = now;
+
+  if (_col) {
+    const setFields = { 'creatives.$[elem].updated_at': now };
+    for (const [k, v] of Object.entries(updates)) {
+      if (!PROTECTED.has(k)) setFields[`creatives.$[elem].${k}`] = v;
+    }
+    await _col.updateOne(
+      { _id: DOC_ID },
+      { $set: setFields },
+      { arrayFilters: [{ 'elem.id': id }] }
+    );
+  } else {
+    fs.writeFileSync(DB_FILE, JSON.stringify(_db, null, 2), 'utf8');
+  }
+
+  return _db.creatives[idx];
+}
+
 // ── Public API ───────────────────────────────────────────────────────────────
 
 async function init() {
@@ -256,6 +285,6 @@ async function deleteUser(googleId) {
   await _usersCol.deleteOne({ googleId });
 }
 
-const db = { init, get, save, nextId, findUserByGoogleId, createUser, updateUser, listUsers, deleteUser };
+const db = { init, get, save, nextId, updateCreative, findUserByGoogleId, createUser, updateUser, listUsers, deleteUser };
 module.exports = db;
 module.exports.DEFAULT_COLUMNS = DEFAULT_COLUMNS;

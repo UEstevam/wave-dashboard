@@ -63,7 +63,21 @@ export default function CreativesTable() {
 
   const updateMut = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<Creative> }) => creativesApi.update(id, data),
-    onSuccess: invalidate,
+    onMutate: async ({ id, data }) => {
+      // Cancel outgoing refetches so they don't overwrite the optimistic update
+      await qc.cancelQueries({ queryKey: ['creatives', filters] });
+      const prev = qc.getQueryData<Creative[]>(['creatives', filters]);
+      // Apply change immediately in UI — no waiting for server
+      qc.setQueryData<Creative[]>(['creatives', filters], old =>
+        (old ?? []).map(c => c.id === id ? { ...c, ...data } : c)
+      );
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      // Rollback if server rejects
+      if (ctx?.prev) qc.setQueryData(['creatives', filters], ctx.prev);
+    },
+    onSettled: invalidate,
   });
 
   const deleteMut = useMutation({

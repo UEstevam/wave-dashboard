@@ -245,18 +245,10 @@ app.post('/api/creatives', async (req, res) => {
 });
 
 app.put('/api/creatives/:id', async (req, res) => {
-  const data = db.get();
   const id = parseInt(req.params.id);
-  const idx = data.creatives.findIndex(c => c.id === id);
-  if (idx === -1) return res.status(404).json({ error: 'Not found' });
-
-  const PROTECTED = new Set(['id', 'created_at', 'updated_at']);
-  for (const [field, value] of Object.entries(req.body)) {
-    if (!PROTECTED.has(field)) data.creatives[idx][field] = value;
-  }
-  data.creatives[idx].updated_at = new Date().toISOString();
-  await db.save();
-  res.json(data.creatives[idx]);
+  const updated = await db.updateCreative(id, req.body);
+  if (!updated) return res.status(404).json({ error: 'Not found' });
+  res.json(updated);
 });
 
 app.delete('/api/creatives/:id', async (req, res) => {
