@@ -200,9 +200,9 @@ export default function CreativesTable() {
   const totalWidth = columns.reduce((s, c) => s + (c.width || 100), 40);
 
   return (
-    <div className="flex flex-col h-screen bg-[#0f1117]">
+    <div className="flex flex-col h-screen bg-[#0a0c14]">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e2130]">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e2130] bg-[#0d0f1a]">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center">
             <Film size={14} className="text-white" />
@@ -277,8 +277,8 @@ export default function CreativesTable() {
       <div className="flex-1 overflow-auto">
         <table className="w-full border-collapse text-[12px]" style={{ minWidth: totalWidth }}>
           <thead className="sticky top-0 z-10">
-            <tr className="bg-[#131623] border-b border-[#1e2130]">
-              <th className="w-10 px-3 py-2 text-center">
+            <tr className="bg-[#0d0f1a] border-b-2 border-[#1e2130]">
+              <th className="w-10 px-3 py-2.5 text-center">
                 <input type="checkbox" checked={creatives.length > 0 && selected.size === creatives.length}
                   onChange={toggleAll} className="w-3.5 h-3.5 accent-indigo-500 cursor-pointer" />
               </th>
@@ -287,7 +287,7 @@ export default function CreativesTable() {
                   key={col.key}
                   style={{ width: col.width, minWidth: col.width }}
                   onClick={() => handleSort(col.key)}
-                  className="group px-2 py-2 text-left text-[10px] font-semibold text-slate-500 tracking-wider select-none cursor-pointer hover:text-slate-300 transition"
+                  className="group px-2 py-2.5 text-left text-[10px] font-semibold text-slate-400 tracking-widest uppercase select-none cursor-pointer hover:text-slate-200 transition"
                 >
                   <span className="flex items-center gap-1">
                     {col.label}
@@ -316,14 +316,14 @@ export default function CreativesTable() {
               sorted.map((creative, i) => (
                 <tr
                   key={creative.id}
-                  className={`border-b border-[#1a1d2e] transition-colors ${selected.has(creative.id) ? 'bg-indigo-500/5' : i % 2 === 0 ? 'bg-[#0f1117]' : 'bg-[#111420]'} hover:bg-[#1a1d2e]`}
+                  className={`border-b border-[#16192a] transition-colors ${selected.has(creative.id) ? 'bg-indigo-500/10' : i % 2 === 0 ? 'bg-[#0f1117]' : 'bg-[#0c0e19]'} hover:bg-[#181b2e]`}
                 >
-                  <td className="w-10 px-3 py-1.5 text-center">
+                  <td className="w-10 px-3 py-1 text-center">
                     <input type="checkbox" checked={selected.has(creative.id)} onChange={() => toggleSelect(creative.id)}
                       className="w-3.5 h-3.5 accent-indigo-500 cursor-pointer" />
                   </td>
                   {columns.map(col => (
-                    <td key={col.key} className="px-2 py-1.5" style={{ maxWidth: col.width }}>
+                    <td key={col.key} className="px-2 py-1" style={{ maxWidth: col.width }}>
                       {renderCell(creative, col)}
                     </td>
                   ))}
@@ -335,7 +335,7 @@ export default function CreativesTable() {
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between px-4 py-2 border-t border-[#1e2130] text-[11px] text-slate-500">
+      <div className="flex items-center justify-between px-4 py-2 border-t border-[#1e2130] bg-[#0d0f1a] text-[11px] text-slate-500">
         <span>{sorted.length} criativos{selected.size > 0 ? ` · ${selected.size} selecionados` : ''}</span>
         <span>Duplo clique para editar · Clique no badge para alterar</span>
       </div>

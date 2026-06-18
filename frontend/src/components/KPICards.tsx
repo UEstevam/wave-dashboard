@@ -15,16 +15,16 @@ export default function KPICards() {
   const { data: stats } = useQuery({ queryKey: ['stats'], queryFn: statsApi.get, refetchInterval: 5000 });
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 p-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 px-4 py-3">
       {cards.map(({ key, label, icon: Icon, color, fmt }) => (
-        <div key={key} className="bg-[#1a1d2e] border border-[#2a2d3e] rounded-xl p-3 flex flex-col gap-1.5">
+        <div key={key} className="bg-[#111424] border border-[#1e2235] rounded-lg p-3 flex flex-col gap-1">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] text-slate-400 font-medium">{label}</span>
-            <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: `${color}22` }}>
-              <Icon size={13} style={{ color }} />
+            <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">{label}</span>
+            <div className="w-5 h-5 rounded flex items-center justify-center" style={{ background: `${color}20` }}>
+              <Icon size={11} style={{ color }} />
             </div>
           </div>
-          <span className="text-xl font-bold text-white">
+          <span className="text-lg font-bold text-white">
             {stats != null && stats[key] != null ? fmt(stats[key] as number) : '—'}
           </span>
         </div>
