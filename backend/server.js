@@ -8,19 +8,20 @@ const youtube = require('./youtube');
 
 // Start DB initialization immediately (module load)
 let dbReady = false;
+let dbError = null;
 const initPromise = db.init()
   .then(() => { dbReady = true; })
-  .catch(err => { console.error('[FATAL] DB init:', err.message); });
+  .catch(err => { dbError = err.message; console.error('[FATAL] DB init:', err.message); });
 
 const app = express();
 
 // ── Core middleware ────────────────────────────────────────────────────────
 
-// Ensure DB is initialized before handling any request (critical for cold starts)
 app.use(async (req, res, next) => {
   if (!dbReady) {
-    try { await initPromise; } catch {
-      return res.status(503).json({ error: 'Database not ready' });
+    await initPromise; // wait for resolution (catch already handled)
+    if (!dbReady) {
+      return res.status(503).json({ error: 'Database not ready', detail: dbError });
     }
   }
   next();
@@ -63,11 +64,25 @@ const PUBLIC_PATHS = new Set([
   '/api/auth/callback',
   '/api/drive/callback',
   '/api/youtube/callback',
+  '/api/health',
 ]);
 
 app.use((req, res, next) => {
   if (PUBLIC_PATHS.has(req.path)) return next();
   return requireAuth(req, res, next);
+});
+
+// ── Health check ──────────────────────────────────────────────────────────
+
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: dbReady ? 'ok' : 'error',
+    dbReady,
+    dbError,
+    mongoConfigured: !!process.env.MONGODB_URI,
+    googleConfigured: !!process.env.GOOGLE_CLIENT_ID,
+    db: process.env.MONGODB_DB || 'wavedash',
+  });
 });
 
 // ── Auth routes ────────────────────────────────────────────────────────────

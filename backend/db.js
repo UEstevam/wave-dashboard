@@ -144,13 +144,19 @@ let _usersCol = null;  // MongoDB users collection
 
 async function initMongo() {
   const client = new MongoClient(MONGO_URI, {
-    serverSelectionTimeoutMS: 15000,
-    connectTimeoutMS: 15000,
+    serverSelectionTimeoutMS: 20000,
+    connectTimeoutMS: 20000,
+    socketTimeoutMS: 20000,
   });
   await client.connect();
-  const mdb = client.db();
+  // Use explicit DB name so the URI doesn't need one
+  const dbName = process.env.MONGODB_DB || 'wavedash';
+  const mdb = client.db(dbName);
   _col = mdb.collection('app_data');
   _usersCol = mdb.collection('users');
+
+  // Verify the connection actually works before proceeding
+  await mdb.command({ ping: 1 });
 
   // Index for fast user lookup
   await _usersCol.createIndex({ googleId: 1 }, { unique: true }).catch(() => {});
