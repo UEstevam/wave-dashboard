@@ -442,7 +442,8 @@ app.post('/api/drive/sync', async (req, res) => {
 
 // ── YouTube integration ────────────────────────────────────────────────────
 
-app.get('/api/youtube/config', (req, res) => {
+app.get('/api/youtube/config', async (req, res) => {
+  await db.reload(); // always fresh — accounts may have been added by another serverless instance
   const cfg = db.get().youtube_config;
   const allChannels = youtube.getAllChannels();
   const accounts = cfg.accounts.map(a => ({
@@ -459,6 +460,7 @@ app.get('/api/youtube/config', (req, res) => {
 });
 
 app.put('/api/youtube/config', async (req, res) => {
+  await db.reload(); // reload before write — prevents stale instance overwriting accounts
   const data = db.get();
   const cfg = data.youtube_config;
   const allowed = ['client_id', 'client_secret', 'default_privacy', 'default_category_id'];

@@ -62,6 +62,7 @@ function getAuthUrl(clientId, clientSecret, accountId) {
 }
 
 async function exchangeCode(code, state) {
+  await db.reload(); // always read fresh — another instance may have saved accounts
   const data = db.get();
   const cfg = data.youtube_config;
   const auth = new google.auth.OAuth2(cfg.client_id, cfg.client_secret, REDIRECT_URI);
@@ -84,6 +85,7 @@ async function exchangeCode(code, state) {
 }
 
 async function fetchChannelsForAccount(accountId) {
+  await db.reload();
   const data = db.get();
   const cfg = data.youtube_config;
   const account = cfg.accounts.find(a => a.id === accountId);
@@ -115,6 +117,7 @@ async function fetchChannelsForAccount(accountId) {
 }
 
 async function removeAccount(accountId) {
+  await db.reload();
   const data = db.get();
   data.youtube_config.accounts = data.youtube_config.accounts.filter(a => a.id !== accountId);
   await db.save();

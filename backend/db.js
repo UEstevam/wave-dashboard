@@ -229,6 +229,17 @@ async function init() {
   }
 }
 
+// Re-reads document from MongoDB to discard stale in-memory state.
+// Must be called before any write that could race with another serverless instance.
+async function reload() {
+  if (!_col) return; // JSON file mode: single process, always consistent
+  const doc = await _col.findOne({ _id: DOC_ID });
+  if (doc) {
+    const { _id, ...data } = doc;
+    _db = migrate(data);
+  }
+}
+
 function get() {
   return _db;
 }
@@ -285,6 +296,6 @@ async function deleteUser(googleId) {
   await _usersCol.deleteOne({ googleId });
 }
 
-const db = { init, get, save, nextId, updateCreative, findUserByGoogleId, createUser, updateUser, listUsers, deleteUser };
+const db = { init, reload, get, save, nextId, updateCreative, findUserByGoogleId, createUser, updateUser, listUsers, deleteUser };
 module.exports = db;
 module.exports.DEFAULT_COLUMNS = DEFAULT_COLUMNS;
