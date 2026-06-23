@@ -5,7 +5,7 @@ const EXT_RE = /[\s.]+(mp4|mov|avi|mkv|webm|gif|png|jpg|jpeg|heic|heif)$/i;
 function formatCreativeName(filename) {
   return filename
     .replace(EXT_RE, '')
-    .replace(/^processed\s+/i, '')
+    .replace(/^processed[\s_]+/i, '')
     .trim()
     .replace(/\s+/g, '-')
     .toUpperCase();
