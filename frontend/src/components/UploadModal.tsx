@@ -132,6 +132,18 @@ export default function UploadModal({ creative, onClose }: Props) {
 
           {!isDone && !isError && (
             <>
+              {/* Creative name info */}
+              <div className="rounded-xl p-3 bg-[#0f1117] border border-[#2a2d3e] space-y-1.5">
+                <div className="flex items-start gap-2">
+                  <span className="text-[10px] text-slate-600 shrink-0 w-32 leading-4 pt-0.5">Vídeo original:</span>
+                  <span className="text-[10px] text-slate-500 font-mono break-all leading-4">{creative.criativo}</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-[10px] text-slate-600 shrink-0 w-32 leading-4 pt-0.5">Nome na dashboard:</span>
+                  <span className="text-[11px] font-semibold text-indigo-300 font-mono tracking-wide leading-4">{displayName}</span>
+                </div>
+              </div>
+
               {/* Channel selector */}
               {allChannels.length > 0 && (
                 <div>
@@ -232,6 +244,18 @@ export default function UploadModal({ creative, onClose }: Props) {
                 >
                   {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
                 </button>
+              </div>
+
+              {/* Name confirmation */}
+              <div className="rounded-lg p-2.5 bg-black/20 border border-[#2a2d3e] space-y-1">
+                <div className="flex items-start gap-2">
+                  <span className="text-[10px] text-slate-600 shrink-0 w-32 leading-4 pt-0.5">Vídeo original:</span>
+                  <span className="text-[10px] text-slate-500 font-mono break-all leading-4">{creative.criativo}</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-[10px] text-slate-600 shrink-0 w-32 leading-4 pt-0.5">Nome na dashboard:</span>
+                  <span className="text-[11px] font-semibold text-indigo-300 font-mono tracking-wide leading-4">{displayName}</span>
+                </div>
               </div>
 
               <a href={job.youtube_url} target="_blank" rel="noopener noreferrer"
