@@ -37,6 +37,9 @@ export const creativesApi = {
 
   bulkDelete: (ids: number[]) =>
     api.post('/creatives/bulk-delete', { ids }),
+
+  bulkUpdate: (ids: number[], data: Partial<Creative>) =>
+    api.post('/creatives/bulk-update', { ids, data }).then(r => r.data),
 };
 
 export const optionsApi = {

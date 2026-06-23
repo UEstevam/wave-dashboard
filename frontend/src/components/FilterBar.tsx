@@ -1,4 +1,4 @@
-import { Search, X } from 'lucide-react';
+import { Search, X, UserCheck, Download } from 'lucide-react';
 import type { Filters, Options } from '../types';
 
 interface Props {
@@ -6,10 +6,13 @@ interface Props {
   options: Options | undefined;
   onChange: (f: Partial<Filters>) => void;
   onReset: () => void;
+  assignedToMe: boolean;
+  onAssignedToMe: (v: boolean) => void;
+  onExport: () => void;
 }
 
-export default function FilterBar({ filters, options, onChange, onReset }: Props) {
-  const hasActive = Object.values(filters).some(v => v !== '');
+export default function FilterBar({ filters, options, onChange, onReset, assignedToMe, onAssignedToMe, onExport }: Props) {
+  const hasActive = Object.values(filters).some(v => v !== '') || assignedToMe;
 
   return (
     <div className="flex flex-wrap items-center gap-2 px-4 pb-2.5">
@@ -25,7 +28,7 @@ export default function FilterBar({ filters, options, onChange, onReset }: Props
       </div>
 
       {/* Dropdowns */}
-      {(['status', 'gestor', 'oferta', 'tipo'] as const).map(key => (
+      {(['status', 'oferta', 'tipo'] as const).map(key => (
         <select
           key={key}
           value={filters[key]}
@@ -39,9 +42,26 @@ export default function FilterBar({ filters, options, onChange, onReset }: Props
         </select>
       ))}
 
+      {/* Atribuído a mim toggle */}
+      <button
+        onClick={() => onAssignedToMe(!assignedToMe)}
+        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12px] border transition ${assignedToMe ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30' : 'text-slate-500 border-[#1e2235] hover:text-slate-300 hover:bg-[#1e2235]'}`}
+      >
+        <UserCheck size={12} /> Meus
+      </button>
+
+      {/* Export CSV */}
+      <button
+        onClick={onExport}
+        title="Exportar CSV"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12px] border border-[#1e2235] text-slate-500 hover:text-slate-300 hover:bg-[#1e2235] transition"
+      >
+        <Download size={12} />
+      </button>
+
       {hasActive && (
         <button
-          onClick={onReset}
+          onClick={() => { onReset(); onAssignedToMe(false); }}
           className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[12px] text-slate-500 hover:text-slate-300 hover:bg-[#1e2235] transition"
         >
           <X size={12} /> Limpar

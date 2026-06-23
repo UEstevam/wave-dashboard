@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { creativesApi, optionsApi, columnsApi, usersApi } from '../api/client';
+import { useToast } from './Toaster';
 import type { Creative, Filters, Column } from '../types';
 import EditableCell from './EditableCell';
 import SelectCell from './SelectCell';
@@ -17,17 +18,35 @@ import UserAvatar from './UserAvatar';
 import UserPickerDialog from './UserPickerDialog';
 import AdminPanel from './AdminPanel';
 import { useAuth } from '../contexts/AuthContext';
-import { Plus, Trash2, Film, ChevronUp, ChevronDown, ExternalLink, Link2, Settings2, Tags, LogOut, Shield } from 'lucide-react';
+import { Plus, Trash2, Film, ChevronUp, ChevronDown, ExternalLink, Link2, Settings2, Tags, LogOut, Shield, X as XIcon } from 'lucide-react';
 import YtIcon from './YtIcon';
 
 const EMPTY_FILTERS: Filters = { search: '', status: '', gestor: '', oferta: '', tipo: '' };
 
 type UserPickerState = { creativeId: number; columnKey: 'editor_id' | 'copy_id' | 'gestor_id'; currentUserId: string | null } | null;
 
+function exportCsv(creatives: Creative[], columns: Column[]) {
+  const headers = columns.map(c => c.label);
+  const rows = creatives.map(cr =>
+    columns.map(c => {
+      const v = cr[c.key];
+      return v == null ? '' : String(v).replace(/,/g, ' ');
+    })
+  );
+  const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'criativos.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function CreativesTable() {
   const qc = useQueryClient();
   const { user: me, logout } = useAuth();
+  const toast = useToast();
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [assignedToMe, setAssignedToMe] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [showAdd, setShowAdd] = useState(false);
   const [showColManager, setShowColManager] = useState(false);
@@ -40,9 +59,11 @@ export default function CreativesTable() {
   const [userPicker, setUserPicker] = useState<UserPickerState>(null);
   const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null);
 
+  const activeFilters = { ...filters, ...(assignedToMe && me ? { assignedTo: me.googleId } : {}) };
+
   const { data: creativesRaw } = useQuery({
-    queryKey: ['creatives', filters],
-    queryFn: () => creativesApi.list(filters),
+    queryKey: ['creatives', activeFilters],
+    queryFn: () => creativesApi.list(activeFilters as Partial<Filters>),
   });
   const creatives: Creative[] = Array.isArray(creativesRaw) ? creativesRaw : [];
   const isLoading = creativesRaw === undefined;
@@ -64,28 +85,42 @@ export default function CreativesTable() {
   const updateMut = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<Creative> }) => creativesApi.update(id, data),
     onMutate: async ({ id, data }) => {
-      // Cancel outgoing refetches so they don't overwrite the optimistic update
-      await qc.cancelQueries({ queryKey: ['creatives', filters] });
-      const prev = qc.getQueryData<Creative[]>(['creatives', filters]);
-      // Apply change immediately in UI — no waiting for server
-      qc.setQueryData<Creative[]>(['creatives', filters], old =>
+      await qc.cancelQueries({ queryKey: ['creatives', activeFilters] });
+      const prev = qc.getQueryData<Creative[]>(['creatives', activeFilters]);
+      qc.setQueryData<Creative[]>(['creatives', activeFilters], old =>
         (old ?? []).map(c => c.id === id ? { ...c, ...data } : c)
       );
       return { prev };
     },
     onError: (_err, _vars, ctx) => {
-      // Rollback if server rejects
-      if (ctx?.prev) qc.setQueryData(['creatives', filters], ctx.prev);
+      if (ctx?.prev) qc.setQueryData(['creatives', activeFilters], ctx.prev);
+      toast.error('Erro ao salvar alteração');
     },
     onSettled: invalidate,
   });
 
   const deleteMut = useMutation({
     mutationFn: (ids: number[]) => ids.length === 1 ? creativesApi.remove(ids[0]) : creativesApi.bulkDelete(ids),
-    onSuccess: () => { setSelected(new Set()); invalidate(); },
+    onSuccess: (_, ids) => {
+      setSelected(new Set());
+      invalidate();
+      toast.success(ids.length === 1 ? 'Criativo excluído' : `${ids.length} criativos excluídos`);
+    },
+    onError: () => toast.error('Erro ao excluir'),
   });
 
-  const createMut = useMutation({ mutationFn: creativesApi.create, onSuccess: invalidate });
+  const createMut = useMutation({
+    mutationFn: creativesApi.create,
+    onSuccess: () => { invalidate(); toast.success('Criativo adicionado'); },
+    onError: () => toast.error('Erro ao criar criativo'),
+  });
+
+  const bulkUpdateMut = useMutation({
+    mutationFn: ({ ids, data }: { ids: number[]; data: Partial<Creative> }) =>
+      creativesApi.bulkUpdate(ids, data),
+    onSuccess: () => { invalidate(); toast.success('Atualizado com sucesso'); },
+    onError: () => toast.error('Erro na atualização em massa'),
+  });
 
   const update = useCallback((id: number, field: string, raw: string) => {
     const numTypes = ['number', 'currency'];
@@ -306,14 +341,6 @@ export default function CreativesTable() {
           >
             <Tags size={13} /> Opções
           </button>
-          {selected.size > 0 && (
-            <button
-              onClick={() => deleteMut.mutate([...selected])}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 transition"
-            >
-              <Trash2 size={12} /> Excluir {selected.size}
-            </button>
-          )}
           <button
             onClick={() => setShowAdd(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition"
@@ -344,6 +371,9 @@ export default function CreativesTable() {
         options={options}
         onChange={f => setFilters(prev => ({ ...prev, ...f }))}
         onReset={() => setFilters(EMPTY_FILTERS)}
+        assignedToMe={assignedToMe}
+        onAssignedToMe={setAssignedToMe}
+        onExport={() => exportCsv(sorted, columns)}
       />
 
       {/* Table */}
@@ -372,11 +402,16 @@ export default function CreativesTable() {
           </thead>
           <tbody>
             {isLoading ? (
-              Array.from({ length: 8 }).map((_, i) => (
+              Array.from({ length: 10 }).map((_, i) => (
                 <tr key={i} className="border-b border-[#1a1d2e]">
-                  <td colSpan={columns.length + 1}>
-                    <div className="h-8 bg-[#1a1d2e] animate-pulse rounded mx-2 my-1" />
+                  <td className="w-10 px-3 py-2.5">
+                    <div className="w-3.5 h-3.5 rounded bg-[#1e2235] skeleton" />
                   </td>
+                  {columns.map((col, j) => (
+                    <td key={col.key} className="px-2 py-2.5" style={{ maxWidth: col.width }}>
+                      <div className="h-3 rounded bg-[#1e2235] skeleton" style={{ width: `${55 + ((i * 7 + j * 13) % 35)}%` }} />
+                    </td>
+                  ))}
                 </tr>
               ))
             ) : sorted.length === 0 ? (
@@ -431,6 +466,45 @@ export default function CreativesTable() {
       {uploadModal && <UploadModal creative={uploadModal} onClose={() => setUploadModal(null)} />}
       {showOptionsManager && <OptionsManager onClose={() => setShowOptionsManager(false)} />}
       {showAdminPanel && <AdminPanel onClose={() => setShowAdminPanel(false)} />}
+
+      {/* ── Bulk action bar ── */}
+      {selected.size > 0 && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#111424] border border-[#2a2d3e] shadow-2xl">
+          <span className="text-[12px] text-slate-400 font-medium pr-1">{selected.size} selecionado{selected.size > 1 ? 's' : ''}</span>
+          <div className="w-px h-4 bg-[#2a2d3e]" />
+          {(['status', 'oferta', 'tipo'] as const).map(key => (
+            <select
+              key={key}
+              defaultValue=""
+              onChange={e => {
+                if (!e.target.value) return;
+                bulkUpdateMut.mutate({ ids: [...selected], data: { [key]: e.target.value } });
+                e.target.value = '';
+              }}
+              className="bg-[#1a1d2e] border border-[#2a2d3e] rounded-lg px-2.5 py-1.5 text-[11px] text-slate-400 outline-none cursor-pointer hover:border-indigo-500/40 transition"
+            >
+              <option value="" disabled>↳ {key.charAt(0).toUpperCase() + key.slice(1)}</option>
+              {options?.[key]?.map(o => <option key={o.value} value={o.value}>{o.value}</option>)}
+            </select>
+          ))}
+          <div className="w-px h-4 bg-[#2a2d3e]" />
+          <button
+            onClick={async () => {
+              if (await toast.confirm(`Excluir ${selected.size} criativo${selected.size > 1 ? 's' : ''}?`))
+                deleteMut.mutate([...selected]);
+            }}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] text-red-400 hover:bg-red-500/15 border border-red-500/20 transition"
+          >
+            <Trash2 size={12} /> Excluir
+          </button>
+          <button
+            onClick={() => setSelected(new Set())}
+            className="p-1.5 rounded-lg text-slate-600 hover:text-slate-300 hover:bg-white/5 transition"
+          >
+            <XIcon size={13} />
+          </button>
+        </div>
+      )}
       {userPicker && (
         <UserPickerDialog
           currentUserId={userPicker.currentUserId}

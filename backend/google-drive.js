@@ -1,6 +1,16 @@
 const { google } = require('googleapis');
 const db = require('./db');
 
+const EXT_RE = /[\s.]+(mp4|mov|avi|mkv|webm|gif|png|jpg|jpeg|heic|heif)$/i;
+function formatCreativeName(filename) {
+  return filename
+    .replace(EXT_RE, '')
+    .replace(/^processed\s+/i, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .toUpperCase();
+}
+
 const REDIRECT_URI = process.env.DRIVE_REDIRECT_URI || 'http://localhost:3001/api/drive/callback';
 const SCOPES = ['https://www.googleapis.com/auth/drive.readonly'];
 
@@ -142,7 +152,7 @@ async function syncNow() {
     const newCreative = {
       id: db.nextId(),
       ordem: nextOrdem,
-      criativo: file.name,
+      criativo: formatCreativeName(file.name),
       tipo: cfg.auto_tipo || '',
       data: createdDate,
       oferta: cfg.auto_oferta || '',

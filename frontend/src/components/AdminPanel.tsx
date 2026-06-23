@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usersApi } from '../api/client';
 import type { AppUser, UserRole } from '../types';
 import UserAvatar from './UserAvatar';
+import { useToast } from './Toaster';
 import { X, Check, Trash2, Shield } from 'lucide-react';
 
 const ROLES: { value: UserRole; label: string; color: string }[] = [
@@ -52,6 +53,7 @@ export default function AdminPanel({ onClose }: Props) {
   });
 
   function UserRow({ u, showApprove }: { u: AppUser; showApprove?: boolean }) {
+    const { confirm } = useToast();
     const [selectedRole, setSelectedRole] = useState<string>(u.role ?? 'editor');
 
     return (
@@ -87,7 +89,7 @@ export default function AdminPanel({ onClose }: Props) {
           </button>
         ) : (
           <button
-            onClick={() => { if (confirm(`Remover ${u.name}?`)) removeMut.mutate(u.googleId); }}
+            onClick={async () => { if (await confirm(`Remover ${u.name} do sistema?`)) removeMut.mutate(u.googleId); }}
             className="p-1.5 rounded text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition"
           >
             <Trash2 size={13} />

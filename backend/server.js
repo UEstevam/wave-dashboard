@@ -184,7 +184,7 @@ app.delete('/api/users/:googleId', requireRole('adm'), async (req, res) => {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-function matchesFilter(c, { search, status, gestor, oferta, tipo }) {
+function matchesFilter(c, { search, status, gestor, oferta, tipo, assignedTo }) {
   if (search) {
     const s = search.toLowerCase();
     if (!c.criativo.toLowerCase().includes(s) && !c.ordem.includes(s) && !(c.observacoes || '').toLowerCase().includes(s)) return false;
@@ -193,6 +193,7 @@ function matchesFilter(c, { search, status, gestor, oferta, tipo }) {
   if (gestor && c.gestor !== gestor) return false;
   if (oferta && c.oferta !== oferta) return false;
   if (tipo   && c.tipo   !== tipo)   return false;
+  if (assignedTo && c.editor_id !== assignedTo && c.copy_id !== assignedTo && c.gestor_id !== assignedTo) return false;
   return true;
 }
 
@@ -266,6 +267,18 @@ app.post('/api/creatives/bulk-delete', async (req, res) => {
   data.creatives = data.creatives.filter(c => !ids.has(c.id));
   await db.save();
   res.status(204).send();
+});
+
+app.post('/api/creatives/bulk-update', async (req, res) => {
+  const ids = (req.body.ids || []).map(Number);
+  const updates = req.body.data || {};
+  if (!ids.length) return res.status(400).json({ error: 'No ids provided' });
+  const results = [];
+  for (const id of ids) {
+    const updated = await db.updateCreative(id, updates);
+    if (updated) results.push(updated);
+  }
+  res.json(results);
 });
 
 // ── Options ────────────────────────────────────────────────────────────────

@@ -37,3 +37,17 @@ body {
   width: 100%;
   padding: 2px 4px;
 }
+
+/* Toast animation */
+@keyframes toast-slide-in {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.toast-in { animation: toast-slide-in 0.2s ease; }
+
+/* Skeleton pulse */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 0.8; }
+}
+.skeleton { animation: skeleton-pulse 1.4s ease-in-out infinite; }

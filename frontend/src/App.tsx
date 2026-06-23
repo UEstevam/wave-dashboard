@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ToastProvider } from './components/Toaster';
 import CreativesTable from './components/CreativesTable';
 import LoginPage from './pages/LoginPage';
 import { Film } from 'lucide-react';
@@ -57,7 +58,9 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Main />
+        <ToastProvider>
+          <Main />
+        </ToastProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

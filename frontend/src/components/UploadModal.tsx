@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { youtubeApi } from '../api/client';
 import type { Creative } from '../types';
+import { formatCreativeName, generateYouTubeTitle } from '../utils/creative';
 import { X, Upload, ExternalLink, CheckCircle2, AlertCircle, Loader2, Copy, Check } from 'lucide-react';
 
 interface Props {
@@ -26,9 +27,9 @@ export default function UploadModal({ creative, onClose }: Props) {
   const { data: config } = useQuery({ queryKey: ['youtube-config'], queryFn: youtubeApi.getConfig });
 
   const allChannels: Channel[] = config?.all_channels || [];
-  const defaultTitle = creative.criativo.replace(/\.[^.]+$/, '');
+  const displayName = formatCreativeName(creative.criativo);
 
-  const [title, setTitle] = useState(defaultTitle);
+  const [title, setTitle] = useState(() => generateYouTubeTitle());
   const [description, setDescription] = useState('');
   const [privacy, setPrivacy] = useState('private');
   const [channelId, setChannelId] = useState('');
@@ -63,7 +64,7 @@ export default function UploadModal({ creative, onClose }: Props) {
   const uploadMut = useMutation({
     mutationFn: () => youtubeApi.upload({
       creativeId: creative.id,
-      title: title.trim() || defaultTitle,
+      title: title.trim() || generateYouTubeTitle(),
       description,
       privacyStatus: privacy,
       channelId,
@@ -99,7 +100,7 @@ export default function UploadModal({ creative, onClose }: Props) {
             </div>
             <div>
               <p className="text-[13px] font-semibold text-white">Upload para o YouTube</p>
-              <p className="text-[10px] text-slate-500 truncate max-w-[300px]">{creative.criativo}</p>
+              <p className="text-[10px] text-slate-500 truncate max-w-[300px]" title={creative.criativo}>{displayName}</p>
             </div>
           </div>
           <button onClick={onClose} className="text-slate-500 hover:text-white transition"><X size={15} /></button>
