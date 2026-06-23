@@ -486,7 +486,7 @@ app.get('/api/youtube/callback', async (req, res) => {
   try {
     const accountId = await youtube.exchangeCode(code, state);
     try { await youtube.fetchChannelsForAccount(accountId); } catch (_) {}
-    res.send(`<html><body style="font-family:sans-serif;background:#0a0c14;color:#e2e8f0;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><div style="font-size:48px">▶</div><h2 style="color:#ff4444;margin:8px 0">Conta Google vinculada!</h2><p style="color:#94a3b8">Pode fechar esta aba e voltar ao dashboard.</p></div></body></html>`);
+    res.send(`<html><body style="font-family:sans-serif;background:#0a0c14;color:#e2e8f0;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><script>try{window.opener&&window.opener.postMessage('youtube-auth-done','*')}catch(e){}setTimeout(function(){try{window.close()}catch(e){}},2000)</script><div style="text-align:center"><div style="font-size:48px">✓</div><h2 style="color:#22c55e;margin:8px 0">Conta Google vinculada!</h2><p style="color:#94a3b8">Esta aba fechará automaticamente...</p></div></body></html>`);
   } catch (err) {
     res.status(500).send(`<html><body style="background:#0a0c14;color:#f87171;font-family:sans-serif;padding:40px">Erro: ${err.message}</body></html>`);
   }

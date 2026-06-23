@@ -49,18 +49,42 @@ export default function YouTubePanel({ onClose }: Props) {
   const saveMut = useMutation({ mutationFn: youtubeApi.updateConfig, onSuccess: () => qc.invalidateQueries({ queryKey: ['youtube-config'] }) });
   const removeMut = useMutation({ mutationFn: youtubeApi.removeAccount, onSuccess: () => qc.invalidateQueries({ queryKey: ['youtube-config'] }) });
 
+  // Opens OAuth popup and refreshes config when done (via postMessage or poll)
+  const openAuthPopup = (url: string) => {
+    const popup = window.open(url, '_blank', 'width=520,height=640');
+    const refresh = () => qc.invalidateQueries({ queryKey: ['youtube-config'] });
+
+    const onMessage = (e: MessageEvent) => {
+      if (e.data === 'youtube-auth-done') {
+        window.removeEventListener('message', onMessage);
+        clearInterval(pollTimer);
+        setTimeout(refresh, 600);
+      }
+    };
+    window.addEventListener('message', onMessage);
+
+    // Fallback: detect popup closure by polling
+    const pollTimer = setInterval(() => {
+      if (popup?.closed) {
+        clearInterval(pollTimer);
+        window.removeEventListener('message', onMessage);
+        refresh();
+      }
+    }, 600);
+  };
+
   const addAccount = async () => {
     const patch: Record<string, string> = {};
     if (credForm.client_id) patch.client_id = credForm.client_id;
     if (credForm.client_secret) patch.client_secret = credForm.client_secret;
     if (Object.keys(patch).length) await saveMut.mutateAsync(patch);
     const url = await youtubeApi.getAuthUrl('new');
-    window.open(url, '_blank', 'width=520,height=640');
+    openAuthPopup(url);
   };
 
   const reAuthAccount = async (accountId: string) => {
     const url = await youtubeApi.getAuthUrl(accountId);
-    window.open(url, '_blank', 'width=520,height=640');
+    openAuthPopup(url);
   };
 
   const refreshAccount = async (accountId: string) => {
@@ -112,7 +136,7 @@ export default function YouTubePanel({ onClose }: Props) {
             <div className="bg-[#1e2235] border border-[#2a2d3e] rounded-xl p-3 space-y-3 text-[11px] text-slate-300">
               {[
                 { n: '1', text: 'No Google Cloud Console, ative a "YouTube Data API v3"' },
-                { n: '2', text: 'Nas credenciais OAuth 2.0, adicione este URI:', code: 'http://localhost:3001/api/youtube/callback' },
+                { n: '2', text: 'Nas credenciais OAuth 2.0, adicione este URI:', code: `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/youtube/callback` },
                 { n: '3', text: 'Cole o Client ID e Secret abaixo (pode ser o mesmo do Drive)' },
                 { n: '4', text: 'Clique "Adicionar Conta Google" — uma janela abrirá pedindo qual Gmail usar' },
                 { n: '5', text: 'Repita o passo 4 para cada Gmail diferente que quiser vincular' },
