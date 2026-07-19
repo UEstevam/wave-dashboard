@@ -34,8 +34,8 @@ function AuthCallbackHandler() {
 function LoadingScreen() {
   return (
     <div className="min-h-screen bg-[#0a0c14] flex items-center justify-center gap-3">
-      <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center animate-pulse">
-        <Film size={16} className="text-white" />
+      <div className="w-8 h-8 rounded-lg bg-[#1a1a20] border border-[#2a2a35] flex items-center justify-center animate-pulse">
+        <Film size={16} className="text-[#00c896]" />
       </div>
       <span className="text-slate-400 text-sm">Carregando...</span>
     </div>

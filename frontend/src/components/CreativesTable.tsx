@@ -149,7 +149,7 @@ export default function CreativesTable() {
 
   const SortIcon = ({ k }: { k: string }) =>
     sort?.key === k
-      ? sort.dir === 'asc' ? <ChevronUp size={11} className="text-indigo-400" /> : <ChevronDown size={11} className="text-indigo-400" />
+      ? sort.dir === 'asc' ? <ChevronUp size={11} className="text-[#00c896]" /> : <ChevronDown size={11} className="text-[#00c896]" />
       : <ChevronUp size={11} className="opacity-0 group-hover:opacity-30" />;
 
   // ── Dynamic cell renderer ───────────────────────────────────────────────
@@ -224,7 +224,7 @@ export default function CreativesTable() {
           </div>
           </div>
           {creative.pasta_origem && (
-            <span className="text-[9px] text-indigo-400/70 bg-indigo-500/10 border border-indigo-500/20 rounded px-1.5 py-0.5 truncate max-w-full self-start">
+            <span className="text-[9px] text-[#00c896]/70 bg-[#1a1a20] border border-[#2a2a35] rounded px-1.5 py-0.5 truncate max-w-full self-start">
               📁 {creative.pasta_origem}
             </span>
           )}
@@ -284,12 +284,12 @@ export default function CreativesTable() {
   const totalWidth = columns.reduce((s, c) => s + (c.width || 100), 40);
 
   return (
-    <div className="flex flex-col h-full bg-[#0a0c14]">
+    <div className="flex flex-col h-full bg-[#0c0c0e]">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e2130] bg-[#0d0f1a]">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[#1a1a20] bg-[#111115]">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center">
-            <Film size={14} className="text-white" />
+          <div className="w-7 h-7 rounded-lg bg-[#1a1a20] border border-[#2a2a35] flex items-center justify-center">
+            <Film size={14} className="text-[#00c896]" />
           </div>
           <span className="text-sm font-semibold text-white">Criativos</span>
         </div>
@@ -299,7 +299,7 @@ export default function CreativesTable() {
             <button
               onClick={() => setShowAdminPanel(true)}
               title="Gerenciar usuários"
-              className="relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] border border-[#2a2d3e] text-slate-400 hover:text-white hover:bg-[#1e2130] transition"
+              className="relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] border border-[#222228] text-slate-400 hover:text-white hover:bg-[#1a1a20] transition"
             >
               <Shield size={13} /> Usuários
             </button>
@@ -307,7 +307,7 @@ export default function CreativesTable() {
           <button
             onClick={() => setShowDrivePanel(v => !v)}
             title="Google Drive Sync"
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] border transition ${showDrivePanel ? 'bg-[#1a73e8]/15 text-[#5ba8fc] border-[#1a73e8]/30' : 'text-slate-400 hover:text-white border-[#2a2d3e] hover:bg-[#1e2130]'}`}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] border transition ${showDrivePanel ? 'bg-[#1a73e8]/15 text-[#5ba8fc] border-[#1a73e8]/30' : 'text-slate-400 hover:text-white border-[#222228] hover:bg-[#1a1a20]'}`}
           >
             <svg width="12" height="11" viewBox="0 0 87.3 78" fill="none" style={{ display: 'inline' }}>
               <path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3L27.5 53h-21c0 1.55.4 3.1 1.1 4.5L6.6 66.85z" fill="currentColor" opacity=".7"/>
@@ -322,34 +322,34 @@ export default function CreativesTable() {
           <button
             onClick={() => setShowYouTubePanel(v => !v)}
             title="YouTube Upload"
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] border transition ${showYouTubePanel ? 'bg-red-600/15 text-red-400 border-red-600/30' : 'text-slate-400 hover:text-white border-[#2a2d3e] hover:bg-[#1e2130]'}`}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] border transition ${showYouTubePanel ? 'bg-red-600/15 text-red-400 border-red-600/30' : 'text-slate-400 hover:text-white border-[#222228] hover:bg-[#1a1a20]'}`}
           >
             <YtIcon size={12} /> YouTube
           </button>
           <button
             onClick={() => setShowColManager(v => !v)}
             title="Gerenciar colunas"
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] border transition ${showColManager ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30' : 'text-slate-400 hover:text-white border-[#2a2d3e] hover:bg-[#1e2130]'}`}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] border transition ${showColManager ? 'bg-[#00c896]/10 text-[#c0f0e8] border-[#2a2a35]' : 'text-slate-400 hover:text-white border-[#222228] hover:bg-[#1a1a20]'}`}
           >
             <Settings2 size={13} /> Colunas
           </button>
           <button
             onClick={() => setShowOptionsManager(true)}
             title="Gerenciar opções de campos"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] border border-[#2a2d3e] text-slate-400 hover:text-white hover:bg-[#1e2130] transition"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] border border-[#222228] text-slate-400 hover:text-white hover:bg-[#1a1a20] transition"
           >
             <Tags size={13} /> Opções
           </button>
           <button
             onClick={() => setShowAdd(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] bg-[#00c896] hover:bg-[#00b888] text-black font-semibold transition"
           >
             <Plus size={13} /> Novo
           </button>
 
           {/* User avatar + logout */}
           {me && (
-            <div className="flex items-center gap-1.5 pl-1 border-l border-[#2a2d3e] ml-1">
+            <div className="flex items-center gap-1.5 pl-1 border-l border-[#222228] ml-1">
               <UserAvatar picture={me.picture} name={me.name} size={26} className="cursor-default" />
               <button
                 onClick={logout}
@@ -379,10 +379,10 @@ export default function CreativesTable() {
       <div className="flex-1 overflow-auto">
         <table className="w-full border-collapse text-[12px]" style={{ minWidth: totalWidth }}>
           <thead className="sticky top-0 z-10">
-            <tr className="bg-[#0d0f1a] border-b-2 border-[#1e2130]">
+            <tr className="bg-[#111115] border-b-2 border-[#1a1a20]">
               <th className="w-10 px-3 py-2.5 text-center">
                 <input type="checkbox" checked={creatives.length > 0 && selected.size === creatives.length}
-                  onChange={toggleAll} className="w-3.5 h-3.5 accent-indigo-500 cursor-pointer" />
+                  onChange={toggleAll} className="w-3.5 h-3.5 accent-[#00c896] cursor-pointer" />
               </th>
               {columns.map(col => (
                 <th
@@ -423,11 +423,11 @@ export default function CreativesTable() {
               sorted.map((creative, i) => (
                 <tr
                   key={creative.id}
-                  className={`border-b border-[#16192a] transition-colors ${selected.has(creative.id) ? 'bg-indigo-500/10' : i % 2 === 0 ? 'bg-[#0f1117]' : 'bg-[#0c0e19]'} hover:bg-[#181b2e]`}
+                  className={`border-b border-[#16192a] transition-colors ${selected.has(creative.id) ? 'bg-[#1a1a20]' : i % 2 === 0 ? 'bg-[#0e0e11]' : 'bg-[#0c0c0e]'} hover:bg-[#141418]`}
                 >
                   <td className="w-10 px-3 py-1 text-center">
                     <input type="checkbox" checked={selected.has(creative.id)} onChange={() => toggleSelect(creative.id)}
-                      className="w-3.5 h-3.5 accent-indigo-500 cursor-pointer" />
+                      className="w-3.5 h-3.5 accent-[#00c896] cursor-pointer" />
                   </td>
                   {columns.map(col => (
                     <td key={col.key} className="px-2 py-1" style={{ maxWidth: col.width }}>
@@ -442,7 +442,7 @@ export default function CreativesTable() {
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between px-4 py-2 border-t border-[#1e2130] bg-[#0d0f1a] text-[11px] text-slate-500">
+      <div className="flex items-center justify-between px-4 py-2 border-t border-[#1a1a20] bg-[#111115] text-[11px] text-slate-500">
         <span>{sorted.length} criativos{selected.size > 0 ? ` · ${selected.size} selecionados` : ''}</span>
         <span>Duplo clique para editar · Clique no badge para alterar</span>
       </div>
@@ -468,7 +468,7 @@ export default function CreativesTable() {
 
       {/* ── Bulk action bar ── */}
       {selected.size > 0 && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#111424] border border-[#2a2d3e] shadow-2xl">
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#111424] border border-[#222228] shadow-2xl">
           <span className="text-[12px] text-slate-400 font-medium pr-1">{selected.size} selecionado{selected.size > 1 ? 's' : ''}</span>
           <div className="w-px h-4 bg-[#2a2d3e]" />
           {(['status', 'oferta', 'tipo'] as const).map(key => (
@@ -480,7 +480,7 @@ export default function CreativesTable() {
                 bulkUpdateMut.mutate({ ids: [...selected], data: { [key]: e.target.value } });
                 e.target.value = '';
               }}
-              className="bg-[#1a1d2e] border border-[#2a2d3e] rounded-lg px-2.5 py-1.5 text-[11px] text-slate-400 outline-none cursor-pointer hover:border-indigo-500/40 transition"
+              className="bg-[#1a1a20] border border-[#222228] rounded-lg px-2.5 py-1.5 text-[11px] text-slate-400 outline-none cursor-pointer hover:border-[#00c896]/30 transition"
             >
               <option value="" disabled>↳ {key.charAt(0).toUpperCase() + key.slice(1)}</option>
               {options?.[key]?.map(o => <option key={o.value} value={o.value}>{o.value}</option>)}

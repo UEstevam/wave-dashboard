@@ -63,7 +63,7 @@ export default function AddRowModal({ options, onClose, onSave }: Props) {
           <button
             onClick={() => { onSave(form); onClose(); }}
             disabled={!form.criativo.trim()}
-            className="px-4 py-1.5 rounded-lg text-[13px] font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-4 py-1.5 rounded-lg text-[13px] font-semibold bg-[#00c896] hover:bg-[#00b888] text-black transition disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Adicionar
           </button>

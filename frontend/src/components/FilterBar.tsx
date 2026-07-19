@@ -23,7 +23,7 @@ export default function FilterBar({ filters, options, onChange, onReset, assigne
           value={filters.search}
           onChange={e => onChange({ search: e.target.value })}
           placeholder="Buscar criativo, ordem..."
-          className="w-full bg-[#111424] border border-[#1e2235] rounded-md pl-8 pr-3 py-1.5 text-[12px] text-slate-300 placeholder:text-slate-600 outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition"
+          className="w-full bg-[#111115] border border-[#1a1a20] rounded-md pl-8 pr-3 py-1.5 text-[12px] text-slate-300 placeholder:text-slate-600 outline-none focus:border-[#00c896]/40 transition"
         />
       </div>
 
@@ -33,7 +33,7 @@ export default function FilterBar({ filters, options, onChange, onReset, assigne
           key={key}
           value={filters[key]}
           onChange={e => onChange({ [key]: e.target.value })}
-          className="bg-[#111424] border border-[#1e2235] rounded-md px-2.5 py-1.5 text-[12px] text-slate-400 outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition cursor-pointer"
+          className="bg-[#111115] border border-[#1a1a20] rounded-md px-2.5 py-1.5 text-[12px] text-slate-400 outline-none focus:border-[#00c896]/40 transition cursor-pointer"
         >
           <option value="">{key.charAt(0).toUpperCase() + key.slice(1)}: Todos</option>
           {options?.[key]?.map(o => (
@@ -45,7 +45,7 @@ export default function FilterBar({ filters, options, onChange, onReset, assigne
       {/* Atribuído a mim toggle */}
       <button
         onClick={() => onAssignedToMe(!assignedToMe)}
-        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12px] border transition ${assignedToMe ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30' : 'text-slate-500 border-[#1e2235] hover:text-slate-300 hover:bg-[#1e2235]'}`}
+        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12px] border transition ${assignedToMe ? 'bg-[#00c896]/10 text-[#00c896] border-[#00c896]/25' : 'text-slate-500 border-[#1a1a20] hover:text-slate-300 hover:bg-[#1a1a20]'}`}
       >
         <UserCheck size={12} /> Meus
       </button>
@@ -54,7 +54,7 @@ export default function FilterBar({ filters, options, onChange, onReset, assigne
       <button
         onClick={onExport}
         title="Exportar CSV"
-        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12px] border border-[#1e2235] text-slate-500 hover:text-slate-300 hover:bg-[#1e2235] transition"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12px] border border-[#1a1a20] text-slate-500 hover:text-slate-300 hover:bg-[#1e2235] transition"
       >
         <Download size={12} />
       </button>
