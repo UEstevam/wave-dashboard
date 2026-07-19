@@ -18,7 +18,7 @@ import UserAvatar from './UserAvatar';
 import UserPickerDialog from './UserPickerDialog';
 import AdminPanel from './AdminPanel';
 import { useAuth } from '../contexts/AuthContext';
-import { Plus, Trash2, Film, ChevronUp, ChevronDown, ExternalLink, Link2, Settings2, Tags, LogOut, Shield, X as XIcon } from 'lucide-react';
+import { Plus, Trash2, Film, ChevronUp, ChevronDown, ExternalLink, Link2, Settings2, Tags, LogOut, Shield, X as XIcon, Monitor } from 'lucide-react';
 import YtIcon from './YtIcon';
 
 const EMPTY_FILTERS: Filters = { search: '', status: '', gestor: '', oferta: '', tipo: '' };
@@ -41,7 +41,12 @@ function exportCsv(creatives: Creative[], columns: Column[]) {
   URL.revokeObjectURL(url);
 }
 
-export default function CreativesTable() {
+interface Props {
+  activeTab: 'criativos' | 'contas';
+  onTabChange: (tab: 'criativos' | 'contas') => void;
+}
+
+export default function CreativesTable({ activeTab, onTabChange }: Props) {
   const qc = useQueryClient();
   const { user: me, logout } = useAuth();
   const toast = useToast();
@@ -292,7 +297,20 @@ export default function CreativesTable() {
             <Film size={14} className="text-white" />
           </div>
           <span className="text-sm font-semibold text-white">Wave Dashboard</span>
-          <span className="text-[11px] text-slate-500 border border-[#2a2d3e] rounded px-1.5 py-0.5">Criativos</span>
+          <div className="flex items-center gap-0.5 border border-[#2a2d3e] rounded-lg p-0.5 bg-[#161929]">
+            <button
+              onClick={() => onTabChange('criativos')}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium transition ${activeTab === 'criativos' ? 'bg-indigo-500/20 text-indigo-300' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              <Film size={11} /> Criativos
+            </button>
+            <button
+              onClick={() => onTabChange('contas')}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium transition ${activeTab === 'contas' ? 'bg-blue-500/20 text-blue-300' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              <Monitor size={11} /> Contas
+            </button>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {/* Admin panel button — only for adm role */}

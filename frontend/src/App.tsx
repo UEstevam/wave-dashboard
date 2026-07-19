@@ -1,10 +1,13 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider } from './components/Toaster';
 import CreativesTable from './components/CreativesTable';
+import AccountsPanel from './components/AccountsPanel';
 import LoginPage from './pages/LoginPage';
 import { Film } from 'lucide-react';
+
+type Tab = 'criativos' | 'contas';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 2000, retry: 1 } },
@@ -40,12 +43,17 @@ function LoadingScreen() {
 
 function Main() {
   const { user, loading } = useAuth();
+  const [activeTab, setActiveTab] = useState<Tab>('criativos');
   const path = window.location.pathname;
 
   if (path === '/login') return <LoginPage />;
   if (loading) return <LoadingScreen />;
   if (!user) return <LoginPage />;
-  return <CreativesTable />;
+
+  if (activeTab === 'contas') {
+    return <AccountsPanel activeTab={activeTab} onTabChange={setActiveTab} />;
+  }
+  return <CreativesTable activeTab={activeTab} onTabChange={setActiveTab} />;
 }
 
 export default function App() {

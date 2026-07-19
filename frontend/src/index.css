@@ -51,3 +51,9 @@ body {
   50%       { opacity: 0.8; }
 }
 .skeleton { animation: skeleton-pulse 1.4s ease-in-out infinite; }
+
+/* Drawer slide-in */
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0.6; }
+  to   { transform: translateX(0);    opacity: 1; }
+}

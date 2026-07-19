@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wave — Controle de Contas</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'><path d='M2 18 Q7 8 14 14 Q21 20 26 10' stroke='%2360a5fa' stroke-width='2.5' stroke-linecap='round' fill='none'/><path d='M2 22 Q7 12 14 18 Q21 24 26 14' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' fill='none' opacity='.55'/></svg>" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-brand">
+      <svg width="26" height="26" viewBox="0 0 28 28" fill="none">
+        <path d="M2 18 Q7 8 14 14 Q21 20 26 10" stroke="#60a5fa" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+        <path d="M2 22 Q7 12 14 18 Q21 24 26 14" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.55"/>
+      </svg>
+      <span class="header-title">Wave <span class="header-sub">/ Controle de Contas</span></span>
+    </div>
+    <div class="header-actions">
+      <div id="connectionStatus" class="connection-badge disconnected">
+        <span class="dot"></span> Desconectado
+      </div>
+      <button class="btn btn-ghost btn-sm" id="btnRefresh" title="Atualizar dados">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/>
+        </svg>
+        Atualizar
+      </button>
+      <button class="btn btn-ghost btn-sm" id="btnSettings" title="Configurações">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+        Config
+      </button>
+    </div>
+  </header>
+
+  <!-- STATS BAR -->
+  <div class="stats-bar" id="statsBar">
+    <div class="stat-item">
+      <div class="stat-icon blue">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+        </svg>
+      </div>
+      <div class="stat-text">
+        <span class="stat-value" id="statProfiles">—</span>
+        <span class="stat-label">Perfis</span>
+      </div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-icon purple">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2z"/><path d="M3 7l9 6 9-6"/>
+        </svg>
+      </div>
+      <div class="stat-text">
+        <span class="stat-value" id="statGroups">—</span>
+        <span class="stat-label">Grupos</span>
+      </div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-icon amber">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>
+        </svg>
+      </div>
+      <div class="stat-text">
+        <span class="stat-value" id="statTags">—</span>
+        <span class="stat-label">Tags</span>
+      </div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-icon green">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+        </svg>
+      </div>
+      <div class="stat-text">
+        <span class="stat-value" id="statWithCreatives">—</span>
+        <span class="stat-label">Com criativos</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filters-bar">
+    <span class="filters-label">Filtrar</span>
+
+    <div class="search-wrap">
+      <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input id="searchInput" class="search-input" type="text" placeholder="Nome, ID ou remark…" />
+    </div>
+
+    <div class="filters-divider"></div>
+
+    <div class="filter-group">
+      <span class="filter-icon">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2z"/>
+        </svg>
+      </span>
+      <select id="groupFilter" class="filter-select">
+        <option value="">Todos os grupos</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <span class="filter-icon">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>
+        </svg>
+      </span>
+      <select id="tagFilter" class="filter-select">
+        <option value="">Todas as tags</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <span class="filter-icon">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/>
+        </svg>
+      </span>
+      <select id="statusFilter" class="filter-select">
+        <option value="">Todos os status</option>
+        <option value="ativa">Ativa</option>
+        <option value="suspensa">Suspensa</option>
+        <option value="em_revisao">Em revisão</option>
+        <option value="banida">Banida</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <span class="filter-icon">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+        </svg>
+      </span>
+      <select id="creativesFilter" class="filter-select">
+        <option value="">Todos os criativos</option>
+        <option value="with">Com criativos</option>
+        <option value="without">Sem criativos</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <main class="main-content">
+    <div id="emptyState" class="empty-state" style="display:none">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round">
+        <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+      </svg>
+      <p id="emptyMessage">Configure a API do AdsPower nas configurações para começar.</p>
+      <button class="btn btn-primary" id="btnEmptySettings">Abrir Configurações</button>
+    </div>
+
+    <div id="loadingState" class="loading-state" style="display:none">
+      <div class="spinner"></div>
+      <p>Carregando perfis do AdsPower…</p>
+    </div>
+
+    <div id="tableWrap" class="table-wrap" style="display:none">
+      <table class="profiles-table">
+        <thead>
+          <tr>
+            <th class="col-num">#</th>
+            <th class="col-profile">Perfil</th>
+            <th class="col-group">Grupo</th>
+            <th class="col-tags">Tags</th>
+            <th class="col-status">Status</th>
+            <th class="col-creatives">Criativos</th>
+            <th class="col-campaigns">Campanhas</th>
+            <th class="col-days">Dias Ativo</th>
+            <th class="col-access">Último Acesso</th>
+            <th class="col-edit"></th>
+          </tr>
+        </thead>
+        <tbody id="profilesBody"></tbody>
+      </table>
+    </div>
+
+    <div id="pagination" class="pagination" style="display:none">
+      <button class="btn btn-ghost btn-sm" id="btnPrevPage">← Anterior</button>
+      <span id="pageInfo" class="page-info"></span>
+      <button class="btn btn-ghost btn-sm" id="btnNextPage">Próximo →</button>
+    </div>
+  </main>
+
+  <!-- SETTINGS MODAL -->
+  <div id="settingsModal" class="modal-overlay" style="display:none">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Configurações da API</h2>
+        <button class="modal-close" id="btnCloseSettings">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Porta do AdsPower</label>
+          <input id="cfgPort" class="form-input" type="number" placeholder="50325" value="50325" />
+          <p class="form-hint">Porta padrão do AdsPower Local API é 50325.</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label">API Key <span class="badge-optional">opcional</span></label>
+          <input id="cfgApiKey" class="form-input" type="password" placeholder="Deixe vazio se não ativou autenticação" />
+          <p class="form-hint">Necessária somente se você habilitou autenticação por chave nas configurações do AdsPower.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="btnCancelSettings">Cancelar</button>
+        <button class="btn btn-primary" id="btnSaveSettings">Salvar e Conectar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDIT DRAWER -->
+  <div id="editDrawer" class="drawer-overlay" style="display:none">
+    <div class="drawer">
+      <div class="drawer-header">
+        <div class="drawer-profile-info">
+          <div class="drawer-profile-name" id="drawerProfileName"></div>
+          <div class="drawer-profile-id" id="drawerProfileId"></div>
+        </div>
+        <button class="modal-close" id="btnCloseDrawer">✕</button>
+      </div>
+
+      <div class="drawer-body">
+
+        <div class="drawer-section">
+          <label class="drawer-label">Status da conta</label>
+          <select id="drawerStatus" class="drawer-status-select">
+            <option value="">— Sem status —</option>
+            <option value="ativa">✅ Ativa</option>
+            <option value="suspensa">⚠️ Suspensa</option>
+            <option value="em_revisao">🔍 Em revisão</option>
+            <option value="banida">🚫 Banida</option>
+          </select>
+        </div>
+
+        <div class="drawer-section">
+          <label class="drawer-label">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="display:inline;vertical-align:middle;margin-right:5px">
+              <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+            </svg>
+            Criativos
+          </label>
+          <div id="drawerCreativesList"></div>
+        </div>
+
+        <div class="drawer-section">
+          <label class="drawer-label">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="display:inline;vertical-align:middle;margin-right:5px">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            </svg>
+            Campanhas
+          </label>
+          <div id="drawerCampaignsList"></div>
+        </div>
+
+        <div class="drawer-section">
+          <label class="drawer-label">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="display:inline;vertical-align:middle;margin-right:5px">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            Observações
+          </label>
+          <textarea id="drawerNotes" class="drawer-notes" placeholder="Observações sobre a conta, histórico de suspensões…" rows="4"></textarea>
+        </div>
+
+      </div>
+
+      <div class="drawer-footer">
+        <button class="btn btn-ghost" id="btnCancelDrawer">Cancelar</button>
+        <button class="btn btn-primary" id="btnSaveDrawer">Salvar alterações</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" style="display:none"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
