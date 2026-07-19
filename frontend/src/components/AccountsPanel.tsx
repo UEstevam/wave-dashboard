@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adsPowerApi, getBaseUrl, saveBaseUrl } from '../api/adspower';
 import type { AdsProfile, AdsGroup, ProfileData, AdsConfig } from '../api/adspower';
 import { useToast } from './Toaster';
-import { Film, RefreshCw, Settings2, Monitor, X, Plus, Wifi, WifiOff, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Film, RefreshCw, Settings2, Monitor, X, Plus, Wifi, WifiOff, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
 
 /* ── Helpers ──────────────────────────────────────────────────── */
 
@@ -344,7 +344,13 @@ export default function AccountsPanel({ activeTab, onTabChange }: Props) {
   const groups: AdsGroup[] = groupsData?.data?.list || [];
 
   // All profiles (auto-paginate AdsPower API)
-  const { data: allProfiles = [], isLoading: loadingProfiles } = useQuery<AdsProfile[]>({
+  const {
+    data: allProfiles = [],
+    isLoading: loadingProfiles,
+    isError: profilesError,
+    error: profilesErrorObj,
+    refetch: refetchProfiles,
+  } = useQuery<AdsProfile[]>({
     queryKey: ['ads-profiles', baseUrl, groupFilter],
     queryFn: async () => {
       const ADS_PAGE = 200;
@@ -354,7 +360,7 @@ export default function AccountsPanel({ activeTab, onTabChange }: Props) {
         const params = new URLSearchParams({ page: String(pg), page_size: String(ADS_PAGE) });
         if (groupFilter) params.set('group_id', groupFilter);
         const data = await adsPowerApi.getProfiles(baseUrl, params);
-        if (data.code !== 0) throw new Error(data.msg);
+        if (data.code !== 0) throw new Error(data.msg || `Código de erro: ${data.code}`);
         const batch: AdsProfile[] = data.data?.list || [];
         all = [...all, ...batch];
         if (batch.length < ADS_PAGE) break;
@@ -363,7 +369,7 @@ export default function AccountsPanel({ activeTab, onTabChange }: Props) {
       return all;
     },
     enabled: connected,
-    retry: 1,
+    retry: false,
     staleTime: 60000,
   });
 
@@ -415,10 +421,10 @@ export default function AccountsPanel({ activeTab, onTabChange }: Props) {
 
   // Mutations
   const invalidateAll = () => {
-    qc.invalidateQueries({ queryKey: ['ads-profiles', baseUrl] });
-    qc.invalidateQueries({ queryKey: ['ads-creatives', baseUrl] });
-    qc.invalidateQueries({ queryKey: ['ads-groups', baseUrl] });
-    qc.invalidateQueries({ queryKey: ['ads-config', baseUrl] });
+    qc.refetchQueries({ queryKey: ['ads-config', baseUrl] });
+    qc.refetchQueries({ queryKey: ['ads-groups', baseUrl] });
+    qc.refetchQueries({ queryKey: ['ads-profiles', baseUrl] });
+    qc.refetchQueries({ queryKey: ['ads-creatives', baseUrl] });
   };
 
   const saveMut = useMutation({
@@ -618,14 +624,40 @@ export default function AccountsPanel({ activeTab, onTabChange }: Props) {
           </div>
         )}
 
-        {connected && !loadingProfiles && filtered.length === 0 && (
+        {connected && !loadingProfiles && profilesError && (
+          <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
+            <AlertCircle size={40} className="text-amber-500/70" />
+            <div className="space-y-1.5">
+              <p className="text-slate-300 text-sm font-medium">Erro ao conectar ao AdsPower</p>
+              <p className="text-slate-500 text-[12px] max-w-md leading-relaxed font-mono bg-[#161929] border border-[#2a2d3e] rounded-lg px-4 py-2">
+                {(profilesErrorObj as Error)?.message || 'Erro desconhecido'}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => refetchProfiles()}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#2a2d3e] text-slate-300 hover:text-white hover:bg-[#1e2130] text-[12px] transition"
+              >
+                <RefreshCw size={13} /> Tentar novamente
+              </button>
+              <button
+                onClick={() => setShowSettings(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[12px] font-medium transition"
+              >
+                <Settings2 size={13} /> Verificar Config
+              </button>
+            </div>
+          </div>
+        )}
+
+        {connected && !loadingProfiles && !profilesError && filtered.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full gap-2 text-slate-600">
             <Monitor size={36} />
             <p className="text-sm">{allProfiles.length === 0 ? 'Nenhum perfil encontrado no AdsPower.' : 'Nenhum perfil com os filtros aplicados.'}</p>
           </div>
         )}
 
-        {connected && !loadingProfiles && pageProfiles.length > 0 && (
+        {connected && !loadingProfiles && !profilesError && pageProfiles.length > 0 && (
           <div className="bg-[#0d0f1a] border border-[#1e2130] rounded-xl overflow-hidden">
             <table className="w-full text-[12px] border-collapse">
               <thead>

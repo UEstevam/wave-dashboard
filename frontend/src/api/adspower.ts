@@ -13,7 +13,11 @@ async function adsReq(base: string, path: string, opts: RequestInit = {}) {
     headers: { 'Content-Type': 'application/json' },
     ...opts,
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (!res.ok) {
+    let msg = `HTTP ${res.status}`;
+    try { const body = await res.json(); if (body?.msg) msg = body.msg; } catch {}
+    throw new Error(msg);
+  }
   return res.json();
 }
 
