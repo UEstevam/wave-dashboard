@@ -368,7 +368,7 @@ export default function AccountsPanel({ activeTab, onTabChange }: Props) {
       }
       return all;
     },
-    enabled: connected,
+    enabled: connected && groupsData !== undefined,
     retry: false,
     staleTime: 60000,
   });

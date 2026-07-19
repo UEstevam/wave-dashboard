@@ -39,6 +39,20 @@ function adsUrl(config, path) {
   return `http://localhost:${config.port}${path}`;
 }
 
+// ── AdsPower rate-limit queue ───────────────────────────────────────────────
+// AdsPower rejects concurrent requests ("Too many request per second").
+// This queue serialises all proxy calls and adds a 700ms gap between them.
+let _adsChain = Promise.resolve();
+
+function adsRequest(url, headers) {
+  const result = _adsChain.then(() => fetch(url, { headers }));
+  // Whether the request succeeds or fails, wait 700ms before the next one.
+  _adsChain = result
+    .catch(() => {})
+    .then(() => new Promise(r => setTimeout(r, 700)));
+  return result;
+}
+
 // ── Config ─────────────────────────────────────────────────────────────────
 
 app.get('/api/config', (req, res) => {
@@ -57,7 +71,7 @@ app.get('/api/ads/groups', async (req, res) => {
   try {
     const config = readConfig();
     const url = adsUrl(config, '/api/v1/group/list?page=1&page_size=2000');
-    const resp = await fetch(url, { headers: adsHeaders(config) });
+    const resp = await adsRequest(url, adsHeaders(config));
     res.json(await resp.json());
   } catch (err) {
     res.status(502).json({ code: -1, msg: `Não foi possível conectar ao AdsPower: ${err.message}` });
@@ -72,7 +86,7 @@ app.get('/api/ads/profiles', async (req, res) => {
     if (group_id) params.set('group_id', group_id);
     if (tag_ids)  params.set('tag_ids', tag_ids);
     const url = adsUrl(config, `/api/v1/user/list?${params}`);
-    const resp = await fetch(url, { headers: adsHeaders(config) });
+    const resp = await adsRequest(url, adsHeaders(config));
     res.json(await resp.json());
   } catch (err) {
     res.status(502).json({ code: -1, msg: `Não foi possível conectar ao AdsPower: ${err.message}` });
@@ -80,12 +94,11 @@ app.get('/api/ads/profiles', async (req, res) => {
 });
 
 // Tags are embedded in profile objects (fbcc_user_tag field).
-// This endpoint is kept for forward-compat but gracefully returns empty if 404.
 app.get('/api/ads/tags', async (req, res) => {
   try {
     const config = readConfig();
     const url = adsUrl(config, '/api/v1/tag/list?page=1&limit=200');
-    const resp = await fetch(url, { headers: adsHeaders(config) });
+    const resp = await adsRequest(url, adsHeaders(config));
     if (!resp.ok) return res.json({ code: 0, data: { list: [] } });
     res.json(await resp.json());
   } catch {
