@@ -114,9 +114,9 @@ app.get('/api/creatives', (req, res) => {
 
 app.put('/api/creatives/:profileId', (req, res) => {
   const { profileId } = req.params;
-  const { creatives = [], notes = '', campaigns = [], status = '' } = req.body;
+  const { creatives = [], notes = '', campaigns = [], situacao = '', responsavel = '', gestor = '' } = req.body;
   const data = JSON.parse(fs.readFileSync(CREATIVES_FILE, 'utf-8'));
-  data[profileId] = { creatives, campaigns, notes, status, updatedAt: new Date().toISOString() };
+  data[profileId] = { creatives, campaigns, notes, situacao, responsavel, gestor, updatedAt: new Date().toISOString() };
   fs.writeFileSync(CREATIVES_FILE, JSON.stringify(data, null, 2));
   res.json({ ok: true });
 });

@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider } from './components/Toaster';
 import CreativesTable from './components/CreativesTable';
 import AccountsPanel from './components/AccountsPanel';
+import Sidebar from './components/Sidebar';
 import LoginPage from './pages/LoginPage';
 import { Film } from 'lucide-react';
 
@@ -50,10 +51,17 @@ function Main() {
   if (loading) return <LoadingScreen />;
   if (!user) return <LoginPage />;
 
-  if (activeTab === 'contas') {
-    return <AccountsPanel activeTab={activeTab} onTabChange={setActiveTab} />;
-  }
-  return <CreativesTable activeTab={activeTab} onTabChange={setActiveTab} />;
+  return (
+    <div className="flex h-screen overflow-hidden bg-[#0c0c0e]">
+      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+      <div className="flex-1 min-w-0 overflow-hidden">
+        {activeTab === 'criativos'
+          ? <CreativesTable />
+          : <AccountsPanel />
+        }
+      </div>
+    </div>
+  );
 }
 
 export default function App() {

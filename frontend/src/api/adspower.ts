@@ -47,7 +47,9 @@ export interface ProfileData {
   creatives: string[];
   campaigns: string[];
   notes: string;
-  status: string;
+  situacao: string;
+  responsavel: string;
+  gestor: string;
   updatedAt?: string;
 }
 
