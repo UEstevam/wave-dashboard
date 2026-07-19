@@ -49,7 +49,7 @@ function adsRequest(url, headers) {
   // Whether the request succeeds or fails, wait 700ms before the next one.
   _adsChain = result
     .catch(() => {})
-    .then(() => new Promise(r => setTimeout(r, 700)));
+    .then(() => new Promise(r => setTimeout(r, 1200)));
   return result;
 }
 
